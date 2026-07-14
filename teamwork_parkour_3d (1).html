@@ -1,0 +1,2545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Teamwork Parkour 3D Co-op</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for high-fidelity synthesized audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Three.js for 3D Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- Google Fonts: Inter & Press Start 2P -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            overflow: hidden;
+        }
+        .pixel-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        .glow-btn-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+            transition: all 0.3s ease;
+        }
+        .glow-btn-cyan:hover {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.8);
+        }
+        .touch-btn {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            user-select: none;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.1s ease;
+            cursor: pointer;
+        }
+        .touch-btn:active {
+            background: rgba(6, 182, 212, 0.5);
+            border-color: rgba(6, 182, 212, 0.9);
+            transform: scale(0.92);
+        }
+        .interactive-btn {
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        .joystick-base {
+            width: 110px;
+            height: 110px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+            border-radius: 50%;
+            position: relative;
+            touch-action: none;
+        }
+        .joystick-knob {
+            width: 44px;
+            height: 44px;
+            background: radial-gradient(circle, #06b6d4 0%, #0891b2 100%);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 10px rgba(6, 182, 212, 0.4);
+            touch-action: none;
+        }
+        .joystick-knob-p2 {
+            background: radial-gradient(circle, #ec4899 0%, #db2777 100%);
+            box-shadow: 0 4px 10px rgba(236, 72, 153, 0.4);
+        }
+        .roblox-jump {
+            width: 72px;
+            height: 72px;
+            background: radial-gradient(circle, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.9) 100%);
+            border: 3px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 800;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+            touch-action: none;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .roblox-jump:active {
+            transform: scale(0.9);
+            border-color: #06b6d4;
+            background: rgba(6, 182, 212, 0.3);
+        }
+        .roblox-jump-p2:active {
+            border-color: #ec4899;
+            background: rgba(236, 72, 153, 0.3);
+        }
+        /* Custom scrollbar to keep layout premium */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center text-slate-100 relative overflow-hidden">
+
+    <div id="ui-container" class="absolute inset-0 w-full h-full z-10 flex flex-col items-center justify-start p-4 overflow-y-auto bg-slate-950/45 pointer-events-auto">
+        
+        <!-- Main Landing Menu -->
+        <div id="main-menu" class="bg-slate-900/95 border border-slate-700/50 backdrop-blur-xl rounded-2xl p-6 md:p-8 max-w-3xl w-full flex flex-col items-center shadow-2xl relative my-auto">
+            <div class="absolute -top-6 bg-cyan-500 text-slate-950 font-black px-6 py-1.5 rounded-full transform -rotate-1 shadow-lg tracking-wider text-xs pixel-font">
+                3D CO-OP CHALLENGE
+            </div>
+            
+            <h1 class="text-3xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 mt-4 mb-2 text-center leading-none">
+                TEAMWORK PARKOUR 3D
+            </h1>
+            <p class="text-slate-400 text-xs md:text-sm text-center max-w-md mb-6">
+                Cooperate with friends, stack up, activate synchronous triggers, and unlock paths together in fully interactive 3D!
+            </p>
+
+            <!-- Multiplayer Connection Lobby -->
+            <div class="w-full bg-slate-950/60 rounded-xl p-4 border border-slate-800/80 mb-6">
+                <span class="block text-center text-xs font-bold text-indigo-400 tracking-wider uppercase mb-3">
+                    <i class="fa-solid fa-wifi"></i> Play on Different iPads / Devices (線上聯機)
+                </span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Host section -->
+                    <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <span class="block text-xs font-bold text-slate-300">Host Room (開啟房間)</span>
+                            <span class="text-[10px] text-slate-500">Create a sync code for other devices.</span>
+                        </div>
+                        <button id="host-btn" class="interactive-btn mt-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-house-signal"></i> Create Online Room
+                        </button>
+                    </div>
+
+                    <!-- Join section -->
+                    <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <span class="block text-xs font-bold text-slate-300">Join Room (加入房間)</span>
+                            <span class="text-[10px] text-slate-500">Enter a code from your friend's iPad.</span>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <input id="room-input" type="text" placeholder="CODE" class="w-20 bg-slate-950 text-slate-100 border border-slate-700 rounded-lg px-2 text-center text-xs font-mono uppercase focus:outline-none focus:border-cyan-400">
+                            <button id="join-btn" class="interactive-btn flex-1 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-2 rounded-lg text-xs transition-all">
+                                JOIN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active online status -->
+                <div id="online-status" class="hidden mt-3 p-2.5 bg-cyan-950/40 border border-cyan-800/60 rounded-lg flex justify-between items-center text-xs">
+                    <span class="text-cyan-400 font-bold flex items-center gap-1.5 animate-pulse">
+                        <span class="h-2.5 w-2.5 bg-emerald-400 rounded-full inline-block"></span> Connected Room: <span id="active-room-code" class="font-mono">NONE</span>
+                    </span>
+                    <button id="leave-room-btn" class="interactive-btn bg-rose-900/80 hover:bg-rose-800 text-rose-200 px-2.5 py-1 rounded text-[10px] font-bold">
+                        Disconnect
+                    </button>
+                </div>
+            </div>
+
+            <!-- Player Selectors -->
+            <div class="w-full mb-4">
+                <span class="block text-center text-xs font-semibold text-cyan-400 tracking-wider uppercase mb-3">Select Player Count / 選擇玩家人數</span>
+                <div class="grid grid-cols-4 gap-2.5" id="p-selector-container">
+                    <button id="p-count-1" class="interactive-btn player-count-btn bg-cyan-600 text-white font-bold py-2.5 rounded-xl border border-cyan-400 hover:bg-cyan-500 transition-all flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-user text-sm"></i>
+                        <span class="text-[10px] font-bold">1 Player</span>
+                    </button>
+                    <button id="p-count-2" class="interactive-btn player-count-btn bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all flex flex-col items-center gap-1">
+                        <div class="flex gap-1"><i class="fa-solid fa-user text-sm"></i><i class="fa-solid fa-user text-sm"></i></div>
+                        <span class="text-[10px] font-bold">2 Players</span>
+                    </button>
+                    <button id="p-count-3" class="interactive-btn player-count-btn bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all flex flex-col items-center gap-1">
+                        <div class="flex gap-1"><i class="fa-solid fa-user text-sm"></i><i class="fa-solid fa-user text-sm"></i><i class="fa-solid fa-user text-sm"></i></div>
+                        <span class="text-[10px] font-bold">3 Players</span>
+                    </button>
+                    <button id="p-count-4" class="interactive-btn player-count-btn bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all flex flex-col items-center gap-1">
+                        <div class="flex gap-0.5"><i class="fa-solid fa-user text-[10px]"></i><i class="fa-solid fa-user text-[10px]"></i><i class="fa-solid fa-user text-[10px]"></i><i class="fa-solid fa-user text-[10px]"></i></div>
+                        <span class="text-[10px] font-bold">4 Players</span>
+                    </button>
+                </div>
+                
+                <!-- Online Role Setup -->
+                <div id="role-selector-box" class="hidden mt-3 p-3 bg-slate-950/30 rounded-lg border border-slate-800">
+                    <span class="block text-[10px] text-slate-400 mb-2 uppercase font-bold text-center">Which character will you control on this iPad?</span>
+                    <div class="grid grid-cols-4 gap-2 text-xs">
+                        <label class="flex flex-col items-center p-2 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer select-none">
+                            <input type="checkbox" id="ctrl-p1" class="mb-1" checked>
+                            <span class="font-bold text-cyan-400">P1 (Blue)</span>
+                        </label>
+                        <label class="flex flex-col items-center p-2 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer select-none">
+                            <input type="checkbox" id="ctrl-p2" class="mb-1" checked>
+                            <span class="font-bold text-pink-400">P2 (Pink)</span>
+                        </label>
+                        <label class="flex flex-col items-center p-2 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer select-none">
+                            <input type="checkbox" id="ctrl-p3" class="mb-1">
+                            <span class="font-bold text-emerald-400">P3 (Green)</span>
+                        </label>
+                        <label class="flex flex-col items-center p-2 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer select-none">
+                            <input type="checkbox" id="ctrl-p4" class="mb-1">
+                            <span class="font-bold text-amber-400">P4 (Yellow)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Mode Tutorial Section -->
+            <div id="mode-tutorial-box" class="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-3 mb-4 text-xs">
+                <span class="block font-bold text-indigo-400 uppercase tracking-wider mb-1"><i class="fa-solid fa-chalkboard-user"></i> GAMEPLAY TUTORIAL / 遊戲玩法教學</span>
+                <p id="mode-tutorial-cn" class="text-slate-200 leading-relaxed font-semibold"></p>
+                <p id="mode-tutorial-en" class="text-slate-400 leading-relaxed mt-1 text-[11px]"></p>
+            </div>
+
+            <!-- Custom Map & Level Selection Grid (Requires previous unlock) -->
+            <div class="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-3 mb-5">
+                <span class="block text-xs font-bold text-cyan-400 uppercase tracking-widest mb-2 text-center">
+                    <i class="fa-solid fa-map-location-dot"></i> SELECT LEVEL / 關卡選擇 (Unlock Progression)
+                </span>
+                <div class="grid grid-cols-3 gap-3" id="level-select-grid">
+                    <!-- Loaded dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Start & Config Buttons -->
+            <div class="w-full flex flex-col sm:flex-row gap-4 mb-4">
+                <button id="start-game-btn" class="interactive-btn flex-1 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black py-4 px-6 rounded-xl text-lg flex items-center justify-center gap-3 transition-all glow-btn-cyan">
+                    <i class="fa-solid fa-play text-xl animate-pulse"></i> START SELECTED LEVEL
+                </button>
+                <button id="cust-btn" class="interactive-btn bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-all text-sm">
+                    <i class="fa-solid fa-sliders"></i> Customize
+                </button>
+            </div>
+
+            <!-- Controls Info Card -->
+            <div class="w-full bg-slate-950/50 rounded-xl p-3 border border-slate-800">
+                <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-keyboard"></i> 3D Keyboard Controls & Navigation
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
+                    <div class="p-2 bg-slate-900 rounded-lg border border-cyan-500/20">
+                        <span class="font-bold text-cyan-400 block mb-1">P1 (Blue)</span>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">W/S</kbd> Move<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">A/D</kbd> Turn<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">SPACE</kbd> Jump
+                    </div>
+                    <div class="p-2 bg-slate-900 rounded-lg border border-pink-500/20">
+                        <span class="font-bold text-pink-400 block mb-1">P2 (Pink)</span>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">▲/▼</kbd> Move<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">◄/►</kbd> Turn<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">ENTER</kbd> Jump
+                    </div>
+                    <div class="p-2 bg-slate-900 rounded-lg border border-emerald-500/20 opacity-60 dynamic-p3-opt">
+                        <span class="font-bold text-emerald-400 block mb-1">P3 (Green)</span>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">I/K</kbd> Move<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">J/L</kbd> Turn<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">Y</kbd> Jump
+                    </div>
+                    <div class="p-2 bg-slate-900 rounded-lg border border-amber-500/20 opacity-60 dynamic-p4-opt">
+                        <span class="font-bold text-amber-400 block mb-1">P4 (Yellow)</span>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">T/G</kbd> Move<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">F/H</kbd> Turn<br>
+                        <kbd class="px-1 bg-slate-800 border border-slate-600 rounded">V</kbd> Jump
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center w-full text-slate-500 text-[10px]">
+                <span>Swipe / drag empty areas of screen to rotate 3D camera angle!</span>
+                <span class="flex items-center gap-1"><i class="fa-solid fa-tablet-screen-button"></i> Roblox Joystick Layout active!</span>
+            </div>
+        </div>
+
+        <!-- Customizations Modal -->
+        <div id="settings-modal" class="hidden fixed inset-0 z-20 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 pointer-events-auto">
+            <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-xl w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-paint-brush"></i> Customize Players & Settings
+                    </h2>
+                    <button id="close-cust-btn" class="interactive-btn text-slate-400 hover:text-white text-lg">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Player 1 -->
+                        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex flex-col gap-2">
+                            <span class="text-xs font-bold text-cyan-400">PLAYER 1 SKIN</span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-cyan-950 border border-cyan-500/50 rounded-lg flex items-center justify-center text-cyan-400 text-lg">
+                                    <i class="fa-solid fa-crown"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[10px] text-slate-500 mb-1">Hat Outfit</label>
+                                    <select id="hat-select-1" class="w-full bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded p-1">
+                                        <option value="none">None</option>
+                                        <option value="crown" selected>Crown</option>
+                                        <option value="ears">Cat Ears</option>
+                                        <option value="tophat">Top Hat</option>
+                                        <option value="astronaut">Space Helmet</option>
+                                        <option value="viking">Viking Horns</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Player 2 -->
+                        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex flex-col gap-2">
+                            <span class="text-xs font-bold text-pink-400">PLAYER 2 SKIN</span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-pink-950 border border-pink-500/50 rounded-lg flex items-center justify-center text-pink-400 text-lg">
+                                    <i class="fa-solid fa-paw"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[10px] text-slate-500 mb-1">Hat Outfit</label>
+                                    <select id="hat-select-2" class="w-full bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded p-1">
+                                        <option value="none">None</option>
+                                        <option value="crown">Crown</option>
+                                        <option value="ears" selected>Cat Ears</option>
+                                        <option value="tophat">Top Hat</option>
+                                        <option value="astronaut">Space Helmet</option>
+                                        <option value="viking">Viking Horns</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Player 3 -->
+                        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex flex-col gap-2">
+                            <span class="text-xs font-bold text-emerald-400">PLAYER 3 SKIN</span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-emerald-950 border border-emerald-500/50 rounded-lg flex items-center justify-center text-emerald-400 text-lg">
+                                    <i class="fa-solid fa-hat-cowboy"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[10px] text-slate-500 mb-1">Hat Outfit</label>
+                                    <select id="hat-select-3" class="w-full bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded p-1">
+                                        <option value="none">None</option>
+                                        <option value="crown">Crown</option>
+                                        <option value="ears">Cat Ears</option>
+                                        <option value="tophat" selected>Top Hat</option>
+                                        <option value="astronaut">Space Helmet</option>
+                                        <option value="viking">Viking Horns</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Player 4 -->
+                        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex flex-col gap-2">
+                            <span class="text-xs font-bold text-amber-400">PLAYER 4 SKIN</span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-amber-950 border border-amber-500/50 rounded-lg flex items-center justify-center text-amber-400 text-lg">
+                                    <i class="fa-solid fa-user-astronaut"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[10px] text-slate-500 mb-1">Hat Outfit</label>
+                                    <select id="hat-select-4" class="w-full bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded p-1">
+                                        <option value="none">None</option>
+                                        <option value="crown">Crown</option>
+                                        <option value="ears">Cat Ears</option>
+                                        <option value="tophat">Top Hat</option>
+                                        <option value="astronaut" selected>Space Helmet</option>
+                                        <option value="viking">Viking Horns</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio settings & Camera Sensitivity sliders -->
+                    <div class="border-t border-slate-800 pt-4 flex flex-col gap-3">
+                        <span class="text-xs font-bold text-cyan-400">PREFERENCES</span>
+                        
+                        <!-- CAMERA SENSITIVITY SLIDER -->
+                        <div class="flex flex-col bg-slate-950/40 p-3 rounded-lg border border-slate-800 gap-2">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-xs font-bold text-slate-200 block">Camera Sensitivity</span>
+                                    <span class="text-[10px] text-slate-500">Adjust how fast the 3D camera rotates on drag or touch swipe.</span>
+                                </div>
+                                <span id="sensitivity-value" class="text-xs font-mono font-bold text-cyan-400">1.0x</span>
+                            </div>
+                            <input id="sensitivity-slider" type="range" min="0.2" max="3.0" step="0.1" value="1.0" class="w-full accent-cyan-500 h-1.5 bg-slate-950 rounded-lg cursor-pointer">
+                        </div>
+
+                        <div class="flex justify-between items-center bg-slate-950/40 p-3 rounded-lg border border-slate-800">
+                            <div>
+                                <span class="text-xs font-bold text-slate-200 block">Sound Synthesizer (Tone.js)</span>
+                                <span class="text-[10px] text-slate-500">Retro co-op synthesized audio effects.</span>
+                            </div>
+                            <button id="sound-toggle-btn" class="interactive-btn bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold px-4 py-1.5 rounded text-xs transition-all">
+                                ON
+                            </button>
+                        </div>
+                        <div class="flex justify-between items-center bg-slate-950/40 p-3 rounded-lg border border-slate-800">
+                            <div>
+                                <span class="text-xs font-bold text-slate-200 block">On-Screen Controls (Roblox Style)</span>
+                                <span class="text-[10px] text-slate-500">Left Thumb Analog Joystick with Right Thumb Jump.</span>
+                            </div>
+                            <button id="touch-toggle-btn" class="interactive-btn bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold px-4 py-1.5 rounded text-xs transition-all">
+                                AUTO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button id="save-cust-btn" class="interactive-btn bg-gradient-to-r from-cyan-500 to-indigo-600 text-slate-950 font-black px-6 py-2 rounded-xl text-sm glow-btn-cyan">
+                        Save and Return
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- In-Game HUD Elements -->
+    <div id="game-hud" class="hidden absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
+        <div class="flex items-center gap-2 md:gap-4">
+            <!-- Back to Menu button -->
+            <button id="exit-btn" class="pointer-events-auto interactive-btn bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all shadow-md text-xs font-semibold">
+                <i class="fa-solid fa-arrow-left"></i> Menu
+            </button>
+            <!-- Speedrun / Match clock -->
+            <div class="bg-slate-900/90 border border-slate-700 text-cyan-400 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md text-xs font-mono">
+                <i class="fa-solid fa-stopwatch animate-pulse"></i> TIME: <span id="hud-timer">00:00</span>
+            </div>
+            <!-- Death/Restart stats -->
+            <div class="bg-slate-900/90 border border-slate-700 text-rose-400 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md text-xs">
+                <i class="fa-solid fa-skull"></i> FAILS: <span id="hud-deaths" class="font-bold">0</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+            <!-- Room indicator in-game if online -->
+            <div id="hud-online-indicator" class="hidden bg-indigo-950/90 border border-indigo-500/50 text-indigo-200 px-3 py-1.5 rounded-xl text-xs font-mono pointer-events-auto">
+                ROOM: <span id="hud-room-code" class="font-bold text-cyan-400"></span>
+            </div>
+            <!-- Level Display -->
+            <div class="bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-md text-xs font-bold text-indigo-300">
+                <span id="hud-level-title">Solo Trial - Level 1/3</span>
+            </div>
+            <button id="reset-level-btn" class="pointer-events-auto interactive-btn bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-rose-400 px-3 py-1.5 rounded-xl flex items-center gap-1 transition-all shadow-md text-xs" title="Reset Level">
+                <i class="fa-solid fa-arrow-rotate-left"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Message box for co-op tutorial -->
+    <div id="game-prompt" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-10 bg-indigo-950/95 border border-indigo-500/40 backdrop-blur-sm text-indigo-200 px-6 py-2.5 rounded-2xl text-xs font-semibold text-center shadow-lg transition-all transform pointer-events-none scale-0 max-w-sm">
+        <span>Help prompt goes here...</span>
+    </div>
+
+    <!-- Custom Popups matching IMG_1587.jpeg styling and layout -->
+    <div id="custom-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full text-center relative shadow-2xl flex flex-col items-center">
+            <!-- Checkmark status icon -->
+            <div class="text-emerald-400 text-5xl mb-4" id="modal-icon">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2" id="modal-title">Lobby Created!</h3>
+            <p class="text-sm text-slate-300 mb-6 max-w-xs" id="modal-desc">Share Sync Code: 6329 with other iPads to join!</p>
+            
+            <!-- Robust Okay Button (Now 100% functional) -->
+            <button id="modal-close-btn" class="interactive-btn w-36 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-extrabold py-2.5 px-4 rounded-xl text-sm transition-all shadow-md">
+                Okay
+            </button>
+        </div>
+    </div>
+
+    <!-- Win Screen Modal -->
+    <div id="win-screen" class="hidden absolute inset-0 z-20 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 pointer-events-auto">
+        <div class="bg-gradient-to-br from-indigo-950 to-slate-900 border-2 border-cyan-500/50 rounded-2xl p-8 max-w-md w-full flex flex-col items-center shadow-2xl relative text-center">
+            <div class="text-yellow-400 text-6xl mb-4 animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-3xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-cyan-400 to-indigo-400 pixel-font mb-4 leading-none">
+                3D VICTORY!
+            </h2>
+            <p class="text-slate-300 text-xs mb-6">
+                Perfect Coordination! You cleared all the 3D map layouts!
+            </p>
+
+            <div class="w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 mb-6 space-y-2 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Total Run Time:</span>
+                    <span id="final-time" class="font-mono text-cyan-400 font-bold">00:00.0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Total Deaths:</span>
+                    <span id="final-deaths" class="font-mono text-rose-400 font-bold">0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Team Size:</span>
+                    <span id="final-players" class="font-mono text-indigo-400 font-bold">2 Players</span>
+                </div>
+            </div>
+
+            <button id="win-again-btn" class="interactive-btn w-full bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black py-4 rounded-xl text-md shadow-lg transition-all glow-btn-cyan flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rotate-left"></i> PLAY AGAIN
+            </button>
+        </div>
+    </div>
+
+    <!-- Roblox-Style Dual / Single Stick Touch Overlay Container -->
+    <div id="roblox-touch-container" class="absolute inset-0 z-10 pointer-events-none select-none hidden">
+        
+        <!-- SINGLE USER OR SYNCED SINGLE ROLE LAYOUT -->
+        <div id="roblox-single-layout" class="absolute inset-x-0 bottom-0 top-16 pointer-events-none hidden">
+            <!-- Left Side Analog Stick (Move) -->
+            <div class="absolute bottom-12 left-12 pointer-events-auto">
+                <div id="joy-base-single" class="joystick-base">
+                    <div id="joy-knob-single" class="joystick-knob"></div>
+                </div>
+            </div>
+            <!-- Right Side Circular Jump Button (Jump) -->
+            <div class="absolute bottom-16 right-16 pointer-events-auto">
+                <div id="btn-jump-single" class="roblox-jump">JUMP</div>
+            </div>
+        </div>
+
+        <!-- SPLIT USER LAYOUT (Used for multi-player offline on 1 tablet) -->
+        <div id="roblox-split-layout" class="absolute inset-x-0 bottom-0 top-16 pointer-events-none hidden">
+            <!-- PLAYER 1 (Left Side of screen) -->
+            <div class="absolute bottom-10 left-6 pointer-events-auto flex flex-col items-center gap-1">
+                <span class="text-[9px] font-black text-cyan-400 uppercase tracking-widest bg-slate-900/60 px-2 py-0.5 rounded">P1 MOVE</span>
+                <div id="joy-base-split-l" class="joystick-base scale-90">
+                    <div id="joy-knob-split-l" class="joystick-knob"></div>
+                </div>
+            </div>
+            <div class="absolute bottom-12 left-[30%] pointer-events-auto flex flex-col items-center gap-1">
+                <span class="text-[9px] font-black text-cyan-400 uppercase tracking-widest bg-slate-900/60 px-2 py-0.5 rounded">P1 JUMP</span>
+                <div id="btn-jump-split-l" class="roblox-jump scale-90">JUMP</div>
+            </div>
+
+            <!-- PLAYER 2 (Right Side of screen) -->
+            <div class="absolute bottom-10 right-6 pointer-events-auto flex flex-col items-center gap-1">
+                <span class="text-[9px] font-black text-pink-400 uppercase tracking-widest bg-slate-900/60 px-2 py-0.5 rounded">P2 MOVE</span>
+                <div id="joy-base-split-r" class="joystick-base scale-90">
+                    <div id="joy-knob-split-r" class="joystick-knob joystick-knob-p2"></div>
+                </div>
+            </div>
+            <div class="absolute bottom-12 right-[30%] pointer-events-auto flex flex-col items-center gap-1">
+                <span class="text-[9px] font-black text-pink-400 uppercase tracking-widest bg-slate-900/60 px-2 py-0.5 rounded">P2 JUMP</span>
+                <div id="btn-jump-split-r" class="roblox-jump roblox-jump-p2 scale-90">JUMP</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container" class="w-full h-full absolute inset-0 z-0 bg-[#020617] cursor-grab active:cursor-grabbing"></div>
+
+    <script>
+        // --- SAFE SYSTEM INITIALIZATION ---
+        let appId = 'teamwork-parkour-3d';
+        let firebaseConfig = null;
+        let initialAuthToken = null;
+
+        try {
+            if (typeof __app_id !== 'undefined') {
+                appId = __app_id;
+            }
+            if (typeof __firebase_config !== 'undefined') {
+                if (typeof __firebase_config === 'string') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                } else if (typeof __firebase_config === 'object' && __firebase_config !== null) {
+                    firebaseConfig = __firebase_config;
+                }
+            }
+            if (typeof __initial_auth_token !== 'undefined') {
+                initialAuthToken = __initial_auth_token;
+            }
+        } catch (err) {
+            console.warn("Could not bind custom environment parameters:", err);
+        }
+
+        let db = null;
+        let auth = null;
+        let user = null;
+
+        // --- FIREBASE SETUP ---
+        async function setupFirebase() {
+            if (!firebaseConfig) {
+                console.log("Local 3D game active. Complete cloud synchronization available once networked.");
+                return;
+            }
+            try {
+                if (typeof firebase === 'undefined') {
+                    console.warn("Firebase SDK loading was blocked. Game is ready in single-device co-op mode.");
+                    return;
+                }
+                const app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore(app);
+                auth = firebase.auth(app);
+
+                if (initialAuthToken) {
+                    const cred = await auth.signInWithCustomToken(initialAuthToken);
+                    user = cred.user;
+                } else {
+                    const cred = await auth.signInAnonymously();
+                    user = cred.user;
+                }
+                console.log("3D Online Engine Initialized. User UID:", auth.currentUser?.uid);
+            } catch (err) {
+                console.error("Firebase network init failed. Local offline game active.", err);
+            }
+        }
+
+        // --- GLOBAL STATE ---
+        let state = {
+            gameStarted: false,
+            playersCount: 1, // Defaulting to 1 player to highlight Solo modes
+            levelIndex: 0, 
+            deaths: 0,
+            startTime: null,
+            elapsedTime: 0,
+            soundEnabled: true,
+            touchControlsActive: 'auto', 
+            isTouchDevice: false,
+            players: [],
+            platforms: [],
+            spikes: [],
+            plates: [],
+            gates: [],
+            movingPlatforms: [],
+            portal: null,
+            timerInterval: null,
+            
+            // Camera Orbit & follow logic state
+            cameraTheta: -Math.PI / 2, // Horiz angle
+            cameraPhi: 0.8,            // Vert angle (tilt down)
+            cameraDistance: 22,        // Follow distance
+            isCamRotating: false,
+            prevMouseX: 0,
+            prevMouseY: 0,
+            cameraSensitivity: 1.0,    // Scalable user setting for camera rotations
+
+            // Online states
+            roomId: null,
+            isOnlineMode: false,
+            roles: { 0: true, 1: true, 2: false, 3: false },
+            syncTimer: 0,
+            roomUnsubscribe: null,
+
+            // Progression & Level Choice Unlocks
+            unlockedLevels: {
+                1: [0], // Solo: [Level 1] unlocked initially
+                2: [0], // Duo: [Level 1] unlocked initially
+                3: [0], // Trio: [Level 1] unlocked initially
+                4: [0]  // Quad: [Level 1] unlocked initially
+            }
+        };
+
+        // Try load previous progression from localStorage safely
+        try {
+            const savedProg = localStorage.getItem('parkour3d_unlocked_levels');
+            if (savedProg) {
+                const parsed = JSON.parse(savedProg);
+                if (parsed[1] && parsed[2] && parsed[3] && parsed[4]) {
+                    state.unlockedLevels = parsed;
+                }
+            }
+        } catch(e) {
+            console.warn("Could not load levels progression:", e);
+        }
+
+        const playerHats = {
+            1: 'crown',
+            2: 'ears',
+            3: 'tophat',
+            4: 'astronaut'
+        };
+
+        const touchInputs = {
+            single: { active: false, startX: 0, startY: 0, curX: 0, curY: 0, vx: 0, vz: 0, jump: false },
+            splitL:  { active: false, startX: 0, startY: 0, curX: 0, curY: 0, vx: 0, vz: 0, jump: false },
+            splitR:  { active: false, startX: 0, startY: 0, curX: 0, curY: 0, vx: 0, vz: 0, jump: false }
+        };
+
+        // --- AUDIO ENGINE (Tone.js) ---
+        let jumpSynth, plateSynth, hitSynth, portalSynth;
+
+        function initSynth() {
+            if (!state.soundEnabled || typeof Tone === 'undefined') return;
+            try {
+                jumpSynth = new Tone.Synth({
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.005, decay: 0.12, sustain: 0.1, release: 0.08 }
+                }).toDestination();
+                jumpSynth.volume.value = -12;
+
+                plateSynth = new Tone.MonoSynth({
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.04, decay: 0.15, sustain: 0.4, release: 0.15 }
+                }).toDestination();
+                plateSynth.volume.value = -8;
+
+                hitSynth = new Tone.NoiseSynth({
+                    noise: { type: 'pink' },
+                    envelope: { attack: 0.005, decay: 0.25 }
+                }).toDestination();
+                hitSynth.volume.value = -14;
+
+                portalSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                portalSynth.volume.value = -10;
+            } catch (e) {
+                state.soundEnabled = false;
+            }
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled || typeof Tone === 'undefined') return;
+            if (Tone.context && Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            try {
+                if (type === 'jump' && jumpSynth) {
+                    jumpSynth.triggerAttackRelease("E4", "16n");
+                } else if (type === 'plate' && plateSynth) {
+                    plateSynth.triggerAttackRelease("G3", "8n");
+                } else if (type === 'plate_off' && plateSynth) {
+                    plateSynth.triggerAttackRelease("C3", "8n");
+                } else if (type === 'hit' && hitSynth) {
+                    hitSynth.triggerAttack();
+                } else if (type === 'checkpoint' && jumpSynth) {
+                    jumpSynth.triggerAttackRelease("B4", "16n");
+                } else if (type === 'portal' && portalSynth) {
+                    portalSynth.triggerAttackRelease(["E4", "G4", "B4", "E5"], "2n");
+                }
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            const btn = document.getElementById('sound-toggle-btn');
+            if (state.soundEnabled) {
+                btn.innerText = "ON";
+                btn.className = "interactive-btn bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold px-4 py-1.5 rounded text-xs transition-all";
+                if (!jumpSynth) initSynth();
+            } else {
+                btn.innerText = "OFF";
+                btn.className = "interactive-btn bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-4 py-1.5 rounded text-xs transition-all";
+            }
+        }
+
+        const PLAYER_SCHEMES = [
+            { id: 1, name: 'P1 (Blue)', color: 0x06b6d4, emissive: 0x014457, keys: { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space' } },
+            { id: 2, name: 'P2 (Pink)', color: 0xec4899, emissive: 0x5a0b35, keys: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', jump: 'Enter' } },
+            { id: 3, name: 'P3 (Green)', color: 0x10b981, emissive: 0x02452c, keys: { up: 'KeyI', down: 'KeyK', left: 'KeyJ', right: 'KeyL', jump: 'KeyY' } },
+            { id: 4, name: 'P4 (Yellow)', color: 0xf59e0b, emissive: 0x543202, keys: { up: 'KeyT', down: 'KeyG', left: 'KeyF', right: 'KeyH', jump: 'KeyV' } }
+        ];
+
+        const LEVELS_3D_DATABASE = {
+            1: [
+                // Solo Level 1
+                {
+                    title: "Solo - Level 1/3: Training Grid",
+                    prompt: "Step on the blue plate to permanently lower the entry barrier. Time your leap across the gap!",
+                    portal: { x: 0, y: 13, z: -27, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 12, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: 0, y: 3, z: -10, w: 9, h: 1.5, d: 9, color: 0x334155, spawn: true },
+                        { x: 0, y: 11, z: -27, w: 12, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -20, w: 30, h: 1, d: 10 }
+                    ],
+                    plates: [
+                        { x: 0, y: 3.8, z: -10, w: 2.5, h: 0.3, d: 2.5, color: 0x06b6d4, id: 'solo_p1', targetGate: 'solo_g1', mode: 'permanent', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 13, z: -20, w: 8, h: 5, d: 1.5, color: 0x06b6d4, id: 'solo_g1', open: false, originY: 13, targetY: 18 }
+                    ],
+                    movingPlatforms: [
+                        { x: 0, y: 7, z: -19, w: 5, h: 1, d: 5, color: 0x475569, startX: -4, endX: 4, startY: 7, endY: 7, startZ: -19, endZ: -19, speed: 0.05, dir: 1, currentX: 0, currentY: 7, currentZ: -19 }
+                    ]
+                },
+                // Solo Level 2
+                {
+                    title: "Solo - Level 2/3: The Crosswind",
+                    prompt: "Watch out for the shifting bridges. Ride the moving platforms across the massive cavern!",
+                    portal: { x: 0, y: 12, z: -35, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 14, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: 0, y: 5, z: -16, w: 8, h: 1.5, d: 8, color: 0x334155 },
+                        { x: 0, y: 10, z: -35, w: 14, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -21, w: 34, h: 1, d: 24 }
+                    ],
+                    plates: [
+                        { x: 0, y: 5.8, z: -16, w: 2.5, h: 0.3, d: 2.5, color: 0x10b981, id: 'solo_p2', targetGate: 'solo_g2', mode: 'permanent', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 11, z: -27, w: 8, h: 5, d: 1.5, color: 0x10b981, id: 'solo_g2', open: false, originY: 11, targetY: 16 }
+                    ],
+                    movingPlatforms: [
+                        { x: -8, y: 2, z: -8, w: 4, h: 1, d: 4, color: 0x475569, startX: -8, endX: 8, startY: 2, endY: 2, startZ: -8, endZ: -8, speed: 0.06, dir: 1, currentX: -8, currentY: 2, currentZ: -8 },
+                        { x: 8, y: 7.5, z: -24, w: 4, h: 1, d: 4, color: 0x475569, startX: -8, endX: 8, startY: 7.5, endY: 7.5, startZ: -24, endZ: -24, speed: 0.07, dir: -1, currentX: 8, currentY: 7.5, currentZ: -24 }
+                    ]
+                },
+                // Solo Level 3
+                {
+                    title: "Solo - Level 3/3: Tower Ascent",
+                    prompt: "Climb up the platforms! Step on the orange plate to raise the elevator, then climb to the finish portal.",
+                    portal: { x: -1, y: 13, z: -16, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 10, h: 2, d: 10, color: 0x1e293b, spawn: true },
+                        { x: -4, y: 1.5, z: -5, w: 4, h: 1.5, d: 4, color: 0x334155 },
+                        { x: 2, y: 4, z: -9, w: 4, h: 1.5, d: 4, color: 0x334155 },
+                        { x: 2, y: 7, z: -14, w: 4, h: 1.5, d: 4, color: 0x334155 },
+                        { x: -1, y: 12, z: -16, w: 6, h: 2, d: 6, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -10, w: 22, h: 1, d: 22 }
+                    ],
+                    plates: [
+                        { x: 2, y: 4.8, z: -9, w: 2, h: 0.3, d: 2, color: 0xf59e0b, id: 'solo_elevator_3', mode: 'permanent', pressed: false }
+                    ],
+                    gates: [],
+                    movingPlatforms: [
+                        { x: -4, y: 1.5, z: -11, w: 4, h: 1, d: 4, color: 0x8b5cf6, startX: -4, endX: -4, startY: 1.5, endY: 10, startZ: -11, endZ: -11, speed: 0.08, dir: 1, currentX: -4, currentY: 1.5, currentZ: -11, id: 'solo_elevator_3', linkedToPlates: true }
+                    ]
+                }
+            ],
+            2: [
+                // Duo Level 1
+                {
+                    title: "Duo - Level 1/3: Co-op Gates",
+                    prompt: "Both players must find their respective color plates on the side wings to pass the center gate!",
+                    portal: { x: 0, y: 11, z: -25, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 20, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: -7, y: 3.5, z: -11, w: 7, h: 1.5, d: 7, color: 0x334155, spawn: true },
+                        { x: 7, y: 3.5, z: -11, w: 7, h: 1.5, d: 7, color: 0x334155, spawn: true },
+                        { x: 0, y: 8.5, z: -25, w: 14, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -14, w: 24, h: 1, d: 6 }
+                    ],
+                    plates: [
+                        { x: -7, y: 4.3, z: -11, w: 2.2, h: 0.3, d: 2.2, color: 0xec4899, id: 'duo_p1', targetGate: 'duo_g1', mode: 'sync', pressed: false },
+                        { x: 7, y: 4.3, z: -11, w: 2.2, h: 0.3, d: 2.2, color: 0x06b6d4, id: 'duo_p2', targetGate: 'duo_g1', mode: 'sync', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 10, z: -18, w: 7, h: 5, d: 1.5, color: 0xec4899, id: 'duo_g1', open: false, originY: 10, targetY: 15 }
+                    ],
+                    movingPlatforms: []
+                },
+                // Duo Level 2
+                {
+                    title: "Duo - Level 2/3: High Wall Jump",
+                    prompt: "Stack up! Player 2 should jump on Player 1's head to clear the barrier and activate the switch.",
+                    portal: { x: 0, y: 11, z: -30, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 16, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: 0, y: 8.5, z: -30, w: 16, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -15, w: 24, h: 1, d: 8 }
+                    ],
+                    plates: [
+                        { x: 0, y: 9.3, z: -32, w: 2.2, h: 0.3, d: 2.2, color: 0x06b6d4, id: 'duo_p3_stack', targetGate: 'duo_g2_gate', mode: 'permanent', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 3, z: -12, w: 16, h: 8, d: 2, color: 0xf59e0b, id: 'duo_g2_gate', open: false, originY: 3, targetY: -5 }
+                    ],
+                    movingPlatforms: []
+                },
+                // Duo Level 3
+                {
+                    title: "Duo - Level 3/3: Alternating Cavern",
+                    prompt: "P1 stands on left plate to move P2's platform. P2 crosses and stands on right plate to drop the portal gate!",
+                    portal: { x: 0, y: 12, z: -35, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 20, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: -7, y: 3.5, z: -12, w: 6, h: 1.5, d: 6, color: 0x334155 },
+                        { x: 7, y: 3.5, z: -12, w: 6, h: 1.5, d: 6, color: 0x334155 },
+                        { x: 0, y: 10, z: -35, w: 14, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -20, w: 32, h: 1, d: 18 }
+                    ],
+                    plates: [
+                        { x: -7, y: 4.3, z: -12, w: 2.2, h: 0.3, d: 2.2, color: 0xec4899, id: 'duo_p5_alt', targetGate: 'duo_alt_bridge', mode: 'sync', pressed: false },
+                        { x: 7, y: 4.3, z: -12, w: 2.2, h: 0.3, d: 2.2, color: 0x06b6d4, id: 'duo_p6_gate', targetGate: 'duo_g3_gate', mode: 'permanent', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 11.5, z: -28, w: 8, h: 5, d: 1.5, color: 0xec4899, id: 'duo_g3_gate', open: false, originY: 11.5, targetY: 16.5 }
+                    ],
+                    movingPlatforms: [
+                        { x: 7, y: 1.5, z: -22, w: 5, h: 1, d: 5, color: 0x8b5cf6, startX: 7, endX: 7, startY: 1.5, endY: 10, startZ: -22, endZ: -32, speed: 0.08, dir: 1, currentX: 7, currentY: 1.5, currentZ: -22, id: 'duo_alt_bridge', linkedToPlates: true }
+                    ]
+                }
+            ],
+            3: [
+                // Trio Level 1
+                {
+                    title: "Trio - Level 1/3: Lift Citadel",
+                    prompt: "Coordinated elevator ride! Side wings move the center bridge higher.",
+                    portal: { x: 0, y: 13, z: -30, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 22, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: -10, y: 3.5, z: -13, w: 6, h: 1.5, d: 6, color: 0x334155, spawn: true },
+                        { x: 10, y: 3.5, z: -13, w: 6, h: 1.5, d: 6, color: 0x334155, spawn: true },
+                        { x: 0, y: 10, z: -30, w: 14, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -16, w: 18, h: 1, d: 8 }
+                    ],
+                    plates: [
+                        { x: -10, y: 4.3, z: -13, w: 2, h: 0.3, d: 2, color: 0x10b981, id: 'trio_p1', targetGate: 'trio_elevator', mode: 'sync', pressed: false },
+                        { x: 10, y: 4.3, z: -13, w: 2, h: 0.3, d: 2, color: 0xec4899, id: 'trio_p2', targetGate: 'trio_elevator', mode: 'sync', pressed: false }
+                    ],
+                    gates: [],
+                    movingPlatforms: [
+                        { x: 0, y: 1.5, z: -15, w: 5, h: 1, d: 5, color: 0x8b5cf6, startX: 0, endX: 0, startY: 1.5, endY: 10, startZ: -15, endZ: -26, speed: 0.08, dir: 1, currentX: 0, currentY: 1.5, currentZ: -15, id: 'trio_elevator', linkedToPlates: true }
+                    ]
+                },
+                // Trio Level 2
+                {
+                    title: "Trio - Level 2/3: Pyramid Step",
+                    prompt: "Form a 3-player stack: P1 at the bottom, P2 in the middle, and P3 on top to reach the trigger plate!",
+                    portal: { x: 0, y: 12, z: -32, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 18, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: 0, y: 10, z: -32, w: 14, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -16, w: 22, h: 1, d: 10 }
+                    ],
+                    plates: [
+                        { x: 0, y: 10.8, z: -34, w: 2, h: 0.3, d: 2, color: 0xf59e0b, id: 'trio_p3_pyramid', targetGate: 'trio_g2_lift', mode: 'permanent', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 4, z: -14, w: 16, h: 10, d: 2, color: 0x10b981, id: 'trio_g2_lift', open: false, originY: 4, targetY: -4 }
+                    ],
+                    movingPlatforms: []
+                },
+                // Trio Level 3
+                {
+                    title: "Trio - Level 3/3: Interlinked Lanes",
+                    prompt: "Coordinated path crossing! Keep each other safe by standing on plates sequentially.",
+                    portal: { x: 0, y: 13, z: -35, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 24, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: -9, y: 4, z: -14, w: 5, h: 1.5, d: 5, color: 0x334155 },
+                        { x: 9, y: 4, z: -14, w: 5, h: 1.5, d: 5, color: 0x334155 },
+                        { x: 0, y: 10, z: -35, w: 16, h: 2, d: 14, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -20, w: 32, h: 1, d: 18 }
+                    ],
+                    plates: [
+                        { x: -9, y: 4.8, z: -14, w: 2, h: 0.3, d: 2, color: 0x10b981, id: 'trio_p5', targetGate: 'trio_g3_gate', mode: 'sync', pressed: false },
+                        { x: 9, y: 4.8, z: -14, w: 2, h: 0.3, d: 2, color: 0xec4899, id: 'trio_p6', targetGate: 'trio_g3_gate', mode: 'sync', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 11, z: -25, w: 10, h: 5, d: 1.5, color: 0x06b6d4, id: 'trio_g3_gate', open: false, originY: 11, targetY: 16 }
+                    ],
+                    movingPlatforms: [
+                        { x: 0, y: 3, z: -16, w: 5, h: 1, d: 5, color: 0x475569, startX: -6, endX: 6, startY: 3, endY: 3, startZ: -16, endZ: -16, speed: 0.05, dir: 1, currentX: 0, currentY: 3, currentZ: -16 }
+                    ]
+                }
+            ],
+            4: [
+                // Quad Level 1
+                {
+                    title: "Quad - Level 1/3: Tower Ascension",
+                    prompt: "Build an epic tower! Form a 4-person head stack to tap the highest plates.",
+                    portal: { x: 0, y: 15, z: -34, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 26, h: 2, d: 14, color: 0x1e293b, spawn: true },
+                        { x: -11, y: 4.5, z: -15, w: 7, h: 1.5, d: 7, color: 0x334155, spawn: true },
+                        { x: 11, y: 4.5, z: -15, w: 7, h: 1.5, d: 7, color: 0x334155, spawn: true },
+                        { x: 0, y: 12, z: -34, w: 16, h: 2, d: 16, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -18, w: 18, h: 1, d: 8 }
+                    ],
+                    plates: [
+                        { x: -11, y: 5.3, z: -15, w: 2.2, h: 0.3, d: 2.2, color: 0xf59e0b, id: 'quad_p1', targetGate: 'quad_g1', mode: 'sync', pressed: false },
+                        { x: 11, y: 5.3, z: -15, w: 2.2, h: 0.3, d: 2.2, color: 0x06b6d4, id: 'quad_g1', mode: 'sync', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 13.5, z: -22, w: 8, h: 5, d: 1.5, color: 0xf59e0b, id: 'quad_g1', open: false, originY: 13.5, targetY: 19.5 }
+                    ],
+                    movingPlatforms: [
+                        { x: 0, y: 6.5, z: -16, w: 5, h: 1, d: 5, color: 0x475569, startX: -5, endX: 5, startY: 6.5, endY: 6.5, startZ: -16, endZ: -16, speed: 0.04, dir: 1, currentX: 0, currentY: 6.5, currentZ: -16 }
+                    ]
+                },
+                // Quad Level 2
+                {
+                    title: "Quad - Level 2/3: Great Escapade",
+                    prompt: "Split into 2 groups! Two players stand on the left/right wings to keep the center platform stable.",
+                    portal: { x: 0, y: 11, z: -32, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 28, h: 2, d: 12, color: 0x1e293b, spawn: true },
+                        { x: -12, y: 4, z: -15, w: 6, h: 1.5, d: 6, color: 0x334155 },
+                        { x: 12, y: 4, z: -15, w: 6, h: 1.5, d: 6, color: 0x334155 },
+                        { x: 0, y: 9, z: -32, w: 12, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -18, w: 32, h: 1, d: 12 }
+                    ],
+                    plates: [
+                        { x: -12, y: 4.8, z: -15, w: 2, h: 0.3, d: 2, color: 0x10b981, id: 'quad_p2_esc', targetGate: 'quad_center_moving', mode: 'sync', pressed: false },
+                        { x: 12, y: 4.8, z: -15, w: 2, h: 0.3, d: 2, color: 0xec4899, id: 'quad_p3_esc', targetGate: 'quad_center_moving', mode: 'sync', pressed: false }
+                    ],
+                    gates: [],
+                    movingPlatforms: [
+                        { x: 0, y: 2, z: -15, w: 6, h: 1, d: 6, color: 0x8b5cf6, startX: 0, endX: 0, startY: 2, endY: 9, startZ: -15, endZ: -24, speed: 0.08, dir: 1, currentX: 0, currentY: 2, currentZ: -15, id: 'quad_center_moving', linkedToPlates: true }
+                    ]
+                },
+                // Quad Level 3
+                {
+                    title: "Quad - Level 3/3: Final Citadel",
+                    prompt: "The ultimate coordination trial! Step on all switches simultaneously to unlock the finish portal.",
+                    portal: { x: 0, y: 14, z: -36, w: 4, h: 6, d: 4 },
+                    platforms: [
+                        { x: 0, y: -2, z: 0, w: 28, h: 2, d: 14, color: 0x1e293b, spawn: true },
+                        { x: -12, y: 5, z: -16, w: 5, h: 1.5, d: 5, color: 0x334155 },
+                        { x: 12, y: 5, z: -16, w: 5, h: 1.5, d: 5, color: 0x334155 },
+                        { x: -5, y: 8, z: -26, w: 4, h: 1.5, d: 4, color: 0x334155 },
+                        { x: 5, y: 8, z: -26, w: 4, h: 1.5, d: 4, color: 0x334155 },
+                        { x: 0, y: 12, z: -36, w: 16, h: 2, d: 12, color: 0x1e293b, spawn: true }
+                    ],
+                    spikes: [
+                        { x: 0, y: -1, z: -20, w: 34, h: 1, d: 24 }
+                    ],
+                    plates: [
+                        { x: -12, y: 5.8, z: -16, w: 2.2, h: 0.3, d: 2.2, color: 0x06b6d4, id: 'quad_f1', targetGate: 'quad_g3_gate', mode: 'sync', pressed: false },
+                        { x: 12, y: 5.8, z: -16, w: 2.2, h: 0.3, d: 2.2, color: 0xec4899, id: 'quad_f2', targetGate: 'quad_g3_gate', mode: 'sync', pressed: false },
+                        { x: -5, y: 8.8, z: -26, w: 2.2, h: 0.3, d: 2.2, color: 0x10b981, id: 'quad_f3', targetGate: 'quad_g3_gate', mode: 'sync', pressed: false },
+                        { x: 5, y: 8.8, z: -26, w: 2.2, h: 0.3, d: 2.2, color: 0xf59e0b, id: 'quad_f4', targetGate: 'quad_g3_gate', mode: 'sync', pressed: false }
+                    ],
+                    gates: [
+                        { x: 0, y: 13, z: -30, w: 8, h: 5, d: 1.5, color: 0x10b981, id: 'quad_g3_gate', open: false, originY: 13, targetY: 18 }
+                    ],
+                    movingPlatforms: [
+                        { x: -6, y: 4, z: -12, w: 4, h: 1, d: 4, color: 0x475569, startX: -6, endX: 6, startY: 4, endY: 4, startZ: -12, endZ: -12, speed: 0.05, dir: 1, currentX: -6, currentY: 4, currentZ: -12 },
+                        { x: 6, y: 6.5, z: -22, w: 4, h: 1, d: 4, color: 0x475569, startX: -6, endX: 6, startY: 6.5, endY: 6.5, startZ: -22, endZ: -22, speed: 0.05, dir: -1, currentX: 6, currentY: 6.5, currentZ: -22 }
+                    ]
+                }
+            ]
+        };
+
+        const keys = {};
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            state.isTouchDevice = true;
+        }
+
+        function initRobloxJoysticks() {
+            const configureJoystick = (baseId, knobId, inputState) => {
+                const base = document.getElementById(baseId);
+                const knob = document.getElementById(knobId);
+                if (!base || !knob) return;
+
+                const maxRadius = 40;
+
+                const handleStart = (clientX, clientY) => {
+                    const rect = base.getBoundingClientRect();
+                    inputState.active = true;
+                    inputState.startX = rect.left + rect.width / 2;
+                    inputState.startY = rect.top + rect.height / 2;
+                    updateMove(clientX, clientY);
+                };
+
+                const updateMove = (clientX, clientY) => {
+                    if (!inputState.active) return;
+                    
+                    let dx = clientX - inputState.startX;
+                    let dy = clientY - inputState.startY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > maxRadius) {
+                        dx = (dx / distance) * maxRadius;
+                        dy = (dy / distance) * maxRadius;
+                    }
+
+                    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+                    inputState.vx = dx / maxRadius;
+                    inputState.vz = dy / maxRadius;
+                };
+
+                const handleEnd = () => {
+                    inputState.active = false;
+                    inputState.vx = 0;
+                    inputState.vz = 0;
+                    knob.style.transform = `translate(-50%, -50%)`;
+                };
+
+                base.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    handleStart(t.clientX, t.clientY);
+                }, { passive: false });
+
+                window.addEventListener('touchmove', (e) => {
+                    if (!inputState.active) return;
+                    for (let i = 0; i < e.touches.length; i++) {
+                        const t = e.touches[i];
+                        const baseRect = base.getBoundingClientRect();
+                        const pad = 120;
+                        if (t.clientX >= baseRect.left - pad && t.clientX <= baseRect.right + pad &&
+                            t.clientY >= baseRect.top - pad && t.clientY <= baseRect.bottom + pad) {
+                            updateMove(t.clientX, t.clientY);
+                            break;
+                        }
+                    }
+                }, { passive: false });
+
+                window.addEventListener('touchend', (e) => {
+                    if (inputState.active && e.touches.length === 0) {
+                        handleEnd();
+                    }
+                });
+                base.addEventListener('touchcancel', handleEnd);
+            };
+
+            configureJoystick('joy-base-single', 'joy-knob-single', touchInputs.single);
+            configureJoystick('joy-base-split-l', 'joy-knob-split-l', touchInputs.splitL);
+            configureJoystick('joy-base-split-r', 'joy-knob-split-r', touchInputs.splitR);
+
+            const bindJumpBtn = (btnId, inputState) => {
+                const el = document.getElementById(btnId);
+                if (!el) return;
+                el.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    inputState.jump = true;
+                }, { passive: false });
+                el.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    inputState.jump = false;
+                }, { passive: false });
+            };
+
+            bindJumpBtn('btn-jump-single', touchInputs.single);
+            bindJumpBtn('btn-jump-split-l', touchInputs.splitL);
+            bindJumpBtn('btn-jump-split-r', touchInputs.splitR);
+        }
+
+        function updateTouchControlUI() {
+            const container = document.getElementById('roblox-touch-container');
+            const singleLayout = document.getElementById('roblox-single-layout');
+            const splitLayout = document.getElementById('roblox-split-layout');
+
+            const shouldShow = (state.touchControlsActive === 'on') || 
+                               (state.touchControlsActive === 'auto' && state.isTouchDevice);
+
+            container.classList.add('hidden');
+            singleLayout.classList.add('hidden');
+            splitLayout.classList.add('hidden');
+
+            if (shouldShow && state.gameStarted) {
+                container.classList.remove('hidden');
+
+                if (!state.isOnlineMode && state.playersCount === 2) {
+                    splitLayout.classList.remove('hidden');
+                } else {
+                    singleLayout.classList.remove('hidden');
+                }
+            }
+
+            const btn = document.getElementById('touch-toggle-btn');
+            if (state.touchControlsActive === 'auto') {
+                btn.innerText = "AUTO";
+                btn.className = "interactive-btn bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-4 py-1.5 rounded text-xs transition-all";
+            } else if (state.touchControlsActive === 'on') {
+                btn.innerText = "FORCE ON";
+                btn.className = "interactive-btn bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold px-4 py-1.5 rounded text-xs transition-all";
+            } else {
+                btn.innerText = "FORCE OFF";
+                btn.className = "interactive-btn bg-rose-700 hover:bg-rose-600 text-slate-200 font-bold px-4 py-1.5 rounded text-xs transition-all";
+            }
+        }
+
+        function toggleTouchControls() {
+            if (state.touchControlsActive === 'auto') {
+                state.touchControlsActive = 'on';
+            } else if (state.touchControlsActive === 'on') {
+                state.touchControlsActive = 'off';
+            } else {
+                state.touchControlsActive = 'auto';
+            }
+            updateTouchControlUI();
+        }
+
+        function showCustomNotification(title, message, iconType = "success") {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = message;
+            
+            const iconEl = document.getElementById('modal-icon');
+            if (iconType === "success") {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+            } else if (iconType === "error") {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-exclamation text-rose-500"></i>';
+            } else {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-info text-cyan-400"></i>';
+            }
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        // Close the notification overlay
+        function closeCustomNotification() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        function initCameraControls() {
+            const startDrag = (clientX, clientY, target) => {
+                if (target && (
+                    target.closest('.joystick-base') || 
+                    target.closest('.roblox-jump') || 
+                    target.closest('.interactive-btn') || 
+                    target.closest('#settings-modal') || 
+                    target.closest('#main-menu') ||
+                    target.closest('#win-screen') ||
+                    target.closest('#custom-modal') ||
+                    target.closest('input[type="range"]')
+                )) {
+                    return;
+                }
+                state.isCamRotating = true;
+                state.prevMouseX = clientX;
+                state.prevMouseY = clientY;
+            };
+
+            const dragMove = (clientX, clientY) => {
+                if (!state.isCamRotating) return;
+                const deltaX = clientX - state.prevMouseX;
+                const deltaY = clientY - state.prevMouseY;
+
+                const sensitivity = state.cameraSensitivity || 1.0;
+                state.cameraTheta -= deltaX * 0.007 * sensitivity;
+                state.cameraPhi -= deltaY * 0.007 * sensitivity;
+
+                state.cameraPhi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, state.cameraPhi));
+
+                state.prevMouseX = clientX;
+                state.prevMouseY = clientY;
+            };
+
+            const stopDrag = () => {
+                state.isCamRotating = false;
+            };
+
+            window.addEventListener('mousedown', (e) => {
+                startDrag(e.clientX, e.clientY, e.target);
+            });
+            window.addEventListener('mousemove', (e) => {
+                dragMove(e.clientX, e.clientY);
+            });
+            window.addEventListener('mouseup', stopDrag);
+
+            window.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) {
+                    const t = e.touches[0];
+                    startDrag(t.clientX, t.clientY, t.target);
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    const t = e.touches[0];
+                    dragMove(t.clientX, t.clientY);
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchend', stopDrag);
+            window.addEventListener('touchcancel', stopDrag);
+        }
+
+        function changePlayerHat(playerIdx, hatType) {
+            playerHats[playerIdx] = hatType;
+            if (state.players[playerIdx - 1]) {
+                state.players[playerIdx - 1].hat = hatType;
+                rebuildPlayerHatGeometry(state.players[playerIdx - 1]);
+            }
+        }
+
+        let scene, camera, renderer, starField, horizonPlat;
+        let pMeshes = [], platMeshes = [], spikeMeshes = [], plateMeshes3d = [], gateMeshes = [], mpMeshes = [], portalMesh;
+
+        function initThreeJS() {
+            if (typeof THREE === 'undefined') {
+                showCustomNotification("Engine Error", "Three.js graphics library failed to load. Please check your connection and reload.", "error");
+                return false;
+            }
+
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = '';
+
+            scene = new THREE.Scene();
+            // Upgraded premium cosmic fog
+            scene.fog = new THREE.FogExp2(0x0a041a, 0.015);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setClearColor(0x0a041a, 1);
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xa855f7, 0.9);
+            dirLight.position.set(20, 45, 18);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0x06b6d4, 1.5, 65);
+            pointLight.position.set(0, 10, -10);
+            scene.add(pointLight);
+
+            // Cyber grid lines
+            const gridHelper = new THREE.GridHelper(240, 60, 0x312e81, 0x1e1b4b);
+            gridHelper.position.y = -2.1;
+            scene.add(gridHelper);
+
+            // Upgraded Premium Cosmic Background (Twinkling star points)
+            const starsGeo = new THREE.BufferGeometry();
+            const starsCount = 1000;
+            const starPositions = new Float32Array(starsCount * 3);
+            for(let i = 0; i < starsCount * 3; i += 3) {
+                starPositions[i] = (Math.random() - 0.5) * 300;
+                starPositions[i+1] = Math.random() * 90 + 5; // disperse high in the virtual sky
+                starPositions[i+2] = (Math.random() - 0.5) * 300;
+            }
+            starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            const starsMat = new THREE.PointsMaterial({
+                color: 0x06b6d4,
+                size: 0.3,
+                transparent: true,
+                opacity: 0.85
+            });
+            starField = new THREE.Points(starsGeo, starsMat);
+            scene.add(starField);
+
+            // Giant horizon decorative wireframe ring (representing sci-fi wormholes)
+            const ringGeo = new THREE.RingGeometry(85, 87, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x4f46e5, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
+            const horizonRing = new THREE.Mesh(ringGeo, ringMat);
+            horizonRing.position.set(0, 5, -120);
+            horizonRing.rotation.y = Math.PI / 4;
+            scene.add(horizonRing);
+
+            window.addEventListener('resize', onWindowResize);
+            initCameraControls();
+            return true;
+        }
+
+        function onWindowResize() {
+            if (typeof THREE === 'undefined' || !renderer || !camera) return;
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function rebuildPlayerHatGeometry(player) {
+            if (!player.mesh || typeof THREE === 'undefined') return;
+
+            const toRemove = [];
+            player.mesh.traverse(child => {
+                if (child.name === 'hat') toRemove.push(child);
+            });
+            toRemove.forEach(r => player.mesh.remove(r));
+
+            const hatType = player.hat;
+            if (hatType === 'none') return;
+
+            const hatGroup = new THREE.Group();
+            hatGroup.name = 'hat';
+
+            if (hatType === 'crown') {
+                const crownGeo = new THREE.ConeGeometry(0.7, 0.9, 5);
+                const crownMat = new THREE.MeshPhongMaterial({ color: 0xfacc15, shininess: 80, emissive: 0x422003 });
+                const crown = new THREE.Mesh(crownGeo, crownMat);
+                crown.position.set(0, 1.1, 0);
+                crown.rotation.y = Math.PI / 5;
+                hatGroup.add(crown);
+            } else if (hatType === 'ears') {
+                const earGeo = new THREE.ConeGeometry(0.3, 0.6, 4);
+                const earMat = new THREE.MeshPhongMaterial({ color: player.color, shininess: 30 });
+                const leftEar = new THREE.Mesh(earGeo, earMat);
+                leftEar.position.set(-0.5, 0.9, 0);
+                leftEar.rotation.z = 0.2;
+                const rightEar = leftEar.clone();
+                rightEar.position.set(0.5, 0.9, 0);
+                rightEar.rotation.z = -0.2;
+                hatGroup.add(leftEar);
+                hatGroup.add(rightEar);
+            } else if (hatType === 'tophat') {
+                const baseGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.1, 16);
+                const crownGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.7, 16);
+                const hatMat = new THREE.MeshPhongMaterial({ color: 0x111827 });
+                const base = new THREE.Mesh(baseGeo, hatMat);
+                base.position.set(0, 0.85, 0);
+                const topPart = new THREE.Mesh(crownGeo, hatMat);
+                topPart.position.set(0, 1.2, 0);
+                hatGroup.add(base);
+                hatGroup.add(topPart);
+            } else if (hatType === 'astronaut') {
+                const helmetGeo = new THREE.SphereGeometry(0.85, 16, 16);
+                const helmetMat = new THREE.MeshPhysicalMaterial({ 
+                    color: 0xffffff, 
+                    transparent: true, 
+                    opacity: 0.4, 
+                    roughness: 0.1, 
+                    transmission: 0.6 
+                });
+                const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+                helmet.position.set(0, 0.2, 0);
+                hatGroup.add(helmet);
+            } else if (hatType === 'viking') {
+                const helmetGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.3, 16);
+                const helmetMat = new THREE.MeshPhongMaterial({ color: 0x6b7280 });
+                const helm = new THREE.Mesh(helmetGeo, helmetMat);
+                helm.position.set(0, 0.85, 0);
+
+                const hornGeo = new THREE.ConeGeometry(0.18, 0.6, 8);
+                const hornMat = new THREE.MeshPhongMaterial({ color: 0xf3f4f6 });
+                const lHorn = new THREE.Mesh(hornGeo, hornMat);
+                lHorn.position.set(-0.5, 1.1, 0);
+                lHorn.rotation.z = 0.5;
+                const rHorn = lHorn.clone();
+                rHorn.position.set(0.5, 1.1, 0);
+                rHorn.rotation.z = -0.5;
+
+                hatGroup.add(helm);
+                hatGroup.add(lHorn);
+                hatGroup.add(rHorn);
+            }
+
+            player.mesh.add(hatGroup);
+        }
+
+        async function hostRoom() {
+            if (!db) {
+                showCustomNotification("Offline Mode Active", "Database unavailable. Local multi-character co-op mode is active!", "error");
+                return;
+            }
+            const generatedCode = String(Math.floor(1000 + Math.random() * 9000));
+            state.roomId = generatedCode;
+            state.isOnlineMode = true;
+
+            const roomRef = db.doc(`artifacts/${appId}/public/data/rooms/${generatedCode}`);
+            try {
+                await roomRef.set({
+                    currentLevel: state.levelIndex, 
+                    deaths: 0,
+                    elapsedTime: 0,
+                    playersCount: state.playersCount,
+                    timestamp: Date.now(),
+                    players: {
+                        0: { x: -3, y: 1.5, z: 0, vx: 0, vy: 0, vz: 0, hat: playerHats[1] },
+                        1: { x: 3, y: 1.5, z: 0, vx: 0, vy: 0, vz: 0, hat: playerHats[2] }
+                    }
+                });
+
+                document.getElementById('active-room-code').innerText = generatedCode;
+                document.getElementById('online-status').classList.remove('hidden');
+                document.getElementById('hud-online-indicator').classList.remove('hidden');
+                document.getElementById('hud-room-code').innerText = generatedCode;
+                
+                document.getElementById('role-selector-box').classList.remove('hidden');
+
+                subscribeToRoom(generatedCode);
+                // Conforming strictly to IMG_1587.jpeg title and layout configurations
+                showCustomNotification("Lobby Created!", "Share Sync Code: " + generatedCode + " with other iPads to join!", "success");
+            } catch (err) {
+                console.error("Hosting failed:", err);
+                showCustomNotification("Cloud Error", "Could not create online room.", "error");
+            }
+        }
+
+        async function joinRoom() {
+            if (!db) {
+                showCustomNotification("Offline Mode Active", "Database offline. Enjoy local split controls instead!", "error");
+                return;
+            }
+            const code = document.getElementById('room-input').value.trim();
+            if (!code || code.length !== 4) {
+                showCustomNotification("Code Required", "Please enter a valid 4-digit room code.", "error");
+                return;
+            }
+
+            const roomRef = db.doc(`artifacts/${appId}/public/data/rooms/${code}`);
+            try {
+                const snap = await roomRef.get();
+                if (!snap.exists) {
+                    showCustomNotification("Missing", "Room code " + code + " not found.", "error");
+                    return;
+                }
+
+                const data = snap.data();
+                state.roomId = code;
+                state.isOnlineMode = true;
+                state.playersCount = data.playersCount || 2;
+                state.levelIndex = data.currentLevel || 0;
+                
+                setPlayerCount(state.playersCount);
+
+                document.getElementById('active-room-code').innerText = code;
+                document.getElementById('online-status').classList.remove('hidden');
+                document.getElementById('hud-online-indicator').classList.remove('hidden');
+                document.getElementById('hud-room-code').innerText = code;
+                
+                document.getElementById('ctrl-p1').checked = false;
+                document.getElementById('ctrl-p2').checked = true;
+                document.getElementById('role-selector-box').classList.remove('hidden');
+
+                subscribeToRoom(code);
+                showCustomNotification("Connected!", "Joined Room " + code + ". Select which player role you control below!", "success");
+            } catch (err) {
+                console.error(err);
+                showCustomNotification("Error", "Could not join room.", "error");
+            }
+        }
+
+        function disconnectRoom() {
+            if (state.roomUnsubscribe) {
+                state.roomUnsubscribe();
+                state.roomUnsubscribe = null;
+            }
+            state.isOnlineMode = false;
+            state.roomId = null;
+            
+            document.getElementById('online-status').classList.add('hidden');
+            document.getElementById('hud-online-indicator').classList.add('hidden');
+            document.getElementById('role-selector-box').classList.add('hidden');
+            
+            showCustomNotification("Disconnected", "Returned to local device play mode.", "info");
+        }
+
+        function subscribeToRoom(code) {
+            if (state.roomUnsubscribe) state.roomUnsubscribe();
+
+            const roomRef = db.doc(`artifacts/${appId}/public/data/rooms/${code}`);
+            state.roomUnsubscribe = roomRef.onSnapshot((snapshot) => {
+                if (!snapshot.exists) return;
+                const data = snapshot.data();
+
+                if (data.deaths !== state.deaths) {
+                    state.deaths = data.deaths;
+                    document.getElementById('hud-deaths').innerText = state.deaths;
+                }
+
+                if (data.currentLevel !== undefined && data.currentLevel !== state.levelIndex) {
+                    state.levelIndex = data.currentLevel;
+                    load3DLevel(state.playersCount, state.levelIndex);
+                }
+
+                if (data.players) {
+                    state.players.forEach(p => {
+                        if (state.roles[p.idx]) return; 
+
+                        const remoteP = data.players[p.idx];
+                        if (remoteP) {
+                            p.targetX = remoteP.x;
+                            p.targetY = remoteP.y;
+                            p.targetZ = remoteP.z;
+                            p.vx = remoteP.vx;
+                            p.vy = remoteP.vy;
+                            p.vz = remoteP.vz;
+                            if (remoteP.hat && remoteP.hat !== p.hat) {
+                                p.hat = remoteP.hat;
+                                rebuildPlayerHatGeometry(p);
+                            }
+                        }
+                    });
+                }
+            }, (err) => {
+                console.error("Room connection dropped:", err);
+            });
+        }
+
+        async function pushClientState() {
+            if (!state.isOnlineMode || !state.roomId || !db) return;
+
+            state.syncTimer++;
+            if (state.syncTimer % 3 !== 0) return; 
+
+            const roomRef = db.doc(`artifacts/${appId}/public/data/rooms/${state.roomId}`);
+            const updates = {};
+
+            state.players.forEach(p => {
+                if (state.roles[p.idx]) {
+                    updates[`players.${p.idx}.x`] = parseFloat(p.x.toFixed(2));
+                    updates[`players.${p.idx}.y`] = parseFloat(p.y.toFixed(2));
+                    updates[`players.${p.idx}.z`] = parseFloat(p.z.toFixed(2));
+                    updates[`players.${p.idx}.vx`] = parseFloat(p.vx.toFixed(2));
+                    updates[`players.${p.idx}.vy`] = parseFloat(p.vy.toFixed(2));
+                    updates[`players.${p.idx}.vz`] = parseFloat(p.vz.toFixed(2));
+                    updates[`players.${p.idx}.hat`] = p.hat;
+                }
+            });
+
+            try {
+                await roomRef.update(updates);
+            } catch (err) {}
+        }
+
+        function setPlayerCount(num) {
+            state.playersCount = num;
+            
+            const p3Opts = document.querySelectorAll('.dynamic-p3-opt');
+            const p4Opts = document.querySelectorAll('.dynamic-p4-opt');
+
+            if (num < 3) p3Opts.forEach(o => o.classList.add('opacity-60'));
+            else p3Opts.forEach(o => o.classList.remove('opacity-60'));
+
+            if (num < 4) p4Opts.forEach(o => o.classList.add('opacity-60'));
+            else p4Opts.forEach(o => o.classList.remove('opacity-60'));
+
+            for (let i = 1; i <= 4; i++) {
+                const btn = document.getElementById(`p-count-${i}`);
+                if (!btn) continue;
+                if (i === num) {
+                    btn.className = "interactive-btn player-count-btn bg-cyan-600 text-white font-bold py-2.5 rounded-xl border border-cyan-400 hover:bg-cyan-500 transition-all flex flex-col items-center gap-1";
+                } else {
+                    btn.className = "interactive-btn player-count-btn bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all flex flex-col items-center gap-1";
+                }
+            }
+
+            // Update Dynamic Tutorial & Locked/Unlocked Level Selection Map
+            renderModeTutorials(num);
+            renderLevelSelectionGrid();
+        }
+
+        // Render localized traditional Chinese and English game tutorials dynamically
+        function renderModeTutorials(playerCount) {
+            const cnTutorial = document.getElementById('mode-tutorial-cn');
+            const enTutorial = document.getElementById('mode-tutorial-en');
+
+            if (playerCount === 1) {
+                cnTutorial.innerHTML = '<i class="fa-solid fa-person-running text-cyan-400 mr-1.5"></i>【單人試煉】訓練關卡！踩下藍色定時按鈕開關後，機關門將永久開啟。看準時機利用 3D 移動平台躍上高空吧！';
+                enTutorial.innerText = "[Solo Trial] Step on the blue pressure plate to permanently lower the security gate. Find your rhythm and leap across sliding platforms to clear.";
+            } else if (playerCount === 2) {
+                cnTutorial.innerHTML = '<i class="fa-solid fa-people-arrows text-pink-400 mr-1.5"></i>【雙人合作】經典合作模式！需利用 3D 疊羅漢（起跳踩踏隊友頭頂）攀爬巨大高牆，且地圖中對應顏色的按鈕需兩位玩家協同踩滿才能解鎖通道。';
+                enTutorial.innerText = "[Duo Co-op] Classic co-op. Stack on your teammate's head (head-boosting) to scale tall barriers. Dual colored terminals must be pressed down simultaneously to open synchronized locks.";
+            } else if (playerCount === 3) {
+                cnTutorial.innerHTML = '<i class="fa-solid fa-people-group text-emerald-400 mr-1.5"></i>【三人協同】三人人梯！合理分工乘坐重力升降梯。底層、中層與頂層玩家需要完美的空間站位和走位配合，方可觸發高空神祕機關。';
+                enTutorial.innerText = "[Trio Citadel] Build 3-player human pyramids to activate high ceiling sensors, and coordinate step-sequences on elevator lanes to progress vertical heights.";
+            } else if (playerCount === 4) {
+                cnTutorial.innerHTML = '<i class="fa-solid fa-cubes text-amber-400 mr-1.5"></i>【四人終極考驗】挑戰默契極限！需要完美的 4 人垂直疊疊樂高塔。全地圖分散的 4 個同步終端按鈕需四人同一秒全部踩下，極度考驗溝通！';
+                enTutorial.innerText = "[Quad Fortress] Ultimate puzzle maps. Form 4-player vertical towers to reach distant sensors. Lock down all four corners of the map synchronously to clear.";
+            }
+        }
+
+        function renderLevelSelectionGrid() {
+            const gridContainer = document.getElementById('level-select-grid');
+            gridContainer.innerHTML = '';
+
+            const mapsArray = LEVELS_3D_DATABASE[state.playersCount] || [];
+            const unlockedList = state.unlockedLevels[state.playersCount] || [0];
+
+            mapsArray.forEach((lvl, idx) => {
+                const isUnlocked = unlockedList.includes(idx);
+                const btn = document.createElement('button');
+
+                if (isUnlocked) {
+                    btn.className = "interactive-btn bg-slate-900/90 hover:bg-cyan-950/60 border border-cyan-500/40 text-cyan-200 py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 relative";
+                    btn.innerHTML = `
+                        <span class="text-[10px] uppercase text-cyan-400">Level ${idx + 1}</span>
+                        <span class="text-[9px] text-slate-400">UNLOCKED</span>
+                    `;
+                    // Click selects this level
+                    btn.addEventListener('click', () => {
+                        state.levelIndex = idx;
+                        playSound('checkpoint');
+                        highlightSelectedLevel(idx);
+                    });
+                } else {
+                    btn.className = "bg-slate-950/80 border border-slate-800 text-slate-500 py-3 rounded-xl text-xs flex flex-col items-center justify-center gap-1 cursor-not-allowed";
+                    btn.innerHTML = `
+                        <i class="fa-solid fa-lock text-[10px] text-rose-500/80"></i>
+                        <span class="text-[9px] uppercase">Level ${idx + 1} (Locked)</span>
+                    `;
+                }
+
+                btn.setAttribute('id', `level-btn-item-${idx}`);
+                gridContainer.appendChild(btn);
+            });
+
+            // Ensure current active level selection is visually highlighted
+            highlightSelectedLevel(state.levelIndex);
+        }
+
+        function highlightSelectedLevel(activeIdx) {
+            const mapsArray = LEVELS_3D_DATABASE[state.playersCount] || [];
+            mapsArray.forEach((_, idx) => {
+                const el = document.getElementById(`level-btn-item-${idx}`);
+                if (!el) return;
+                
+                // Reset styling first if it's unlocked
+                const unlockedList = state.unlockedLevels[state.playersCount] || [0];
+                if (unlockedList.includes(idx)) {
+                    if (idx === activeIdx) {
+                        el.className = "interactive-btn bg-cyan-950 border-2 border-cyan-400 text-white py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 relative shadow-[0_0_12px_rgba(6,182,212,0.3)]";
+                    } else {
+                        el.className = "interactive-btn bg-slate-900/90 hover:bg-cyan-950/60 border border-cyan-500/40 text-cyan-200 py-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 relative";
+                    }
+                }
+            });
+        }
+
+        function load3DLevel(playerCount, levelIdx) {
+            if (typeof THREE === 'undefined') return;
+            
+            const mapsArray = LEVELS_3D_DATABASE[playerCount];
+            if (!mapsArray) return;
+            
+            const template = mapsArray[levelIdx];
+            if (!template) return;
+
+            document.getElementById('hud-level-title').innerText = template.title;
+            document.getElementById('hud-deaths').innerText = state.deaths;
+
+            showCoOpPrompt(template.prompt);
+
+            platMeshes.forEach(m => scene.remove(m));
+            spikeMeshes.forEach(m => scene.remove(m));
+            plateMeshes3d.forEach(m => scene.remove(m));
+            gateMeshes.forEach(m => scene.remove(m));
+            mpMeshes.forEach(m => scene.remove(m));
+            if (portalMesh) scene.remove(portalMesh);
+            pMeshes.forEach(m => scene.remove(m));
+
+            platMeshes = [];
+            spikeMeshes = [];
+            plateMeshes3d = [];
+            gateMeshes = [];
+            mpMeshes = [];
+            pMeshes = [];
+
+            state.platforms = JSON.parse(JSON.stringify(template.platforms));
+            state.spikes = JSON.parse(JSON.stringify(template.spikes));
+            state.plates = JSON.parse(JSON.stringify(template.plates));
+            state.gates = JSON.parse(JSON.stringify(template.gates));
+            state.movingPlatforms = JSON.parse(JSON.stringify(template.movingPlatforms));
+            state.portal = JSON.parse(JSON.stringify(template.portal));
+
+            state.platforms.forEach(plat => {
+                const geo = new THREE.BoxGeometry(plat.w, plat.h, plat.d);
+                const mat = new THREE.MeshPhongMaterial({ color: plat.color, shininess: 12 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(plat.x, plat.y, plat.z);
+                mesh.receiveShadow = true;
+                mesh.castShadow = true;
+                scene.add(mesh);
+                platMeshes.push(mesh);
+            });
+
+            state.spikes.forEach(spike => {
+                const group = new THREE.Group();
+                group.position.set(spike.x, spike.y, spike.z);
+
+                const countX = Math.ceil(spike.w / 1.5);
+                const countZ = Math.ceil(spike.d / 1.5);
+                const stepX = spike.w / countX;
+                const stepZ = spike.d / countZ;
+
+                const coneGeo = new THREE.ConeGeometry(0.5, 1.2, 4);
+                const coneMat = new THREE.MeshPhongMaterial({ color: 0xf43f5e, emissive: 0x4c0519 });
+
+                for (let i = 0; i < countX; i++) {
+                    for (let j = 0; j < countZ; j++) {
+                        const cone = new THREE.Mesh(coneGeo, coneMat);
+                        cone.position.set(
+                            -spike.w/2 + (i * stepX) + stepX/2,
+                            0.6,
+                            -spike.d/2 + (j * stepZ) + stepZ/2
+                        );
+                        cone.castShadow = true;
+                        group.add(cone);
+                    }
+                }
+                scene.add(group);
+                spikeMeshes.push(group);
+            });
+
+            state.plates.forEach(p => {
+                const group = new THREE.Group();
+                group.position.set(p.x, p.y, p.z);
+
+                const plateGeo = new THREE.BoxGeometry(p.w, p.h, p.d);
+                const plateMat = new THREE.MeshPhongMaterial({ color: p.color, emissive: 0x111827 });
+                const plateMesh = new THREE.Mesh(plateGeo, plateMat);
+                plateMesh.name = "trigger_button";
+                plateMesh.castShadow = true;
+                group.add(plateMesh);
+
+                const borderGeo = new THREE.BoxGeometry(p.w + 0.3, 0.1, p.d + 0.3);
+                const borderMat = new THREE.MeshPhongMaterial({ color: 0x475569 });
+                const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+                borderMesh.position.y = -p.h / 2;
+                group.add(borderMesh);
+
+                scene.add(group);
+                plateMeshes3d.push(group);
+            });
+
+            state.gates.forEach(g => {
+                const geo = new THREE.BoxGeometry(g.w, g.h, g.d);
+                const mat = new THREE.MeshPhongMaterial({ color: g.color, transparent: true, opacity: 0.85, emissive: g.color });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(g.x, g.y, g.z);
+                mesh.castShadow = true;
+                scene.add(mesh);
+                gateMeshes.push(mesh);
+            });
+
+            state.movingPlatforms.forEach(mp => {
+                const geo = new THREE.BoxGeometry(mp.w, mp.h, mp.d);
+                const mat = new THREE.MeshPhongMaterial({ color: mp.color || 0x475569, shininess: 20 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(mp.x, mp.y, mp.z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                scene.add(mesh);
+                mpMeshes.push(mesh);
+            });
+
+            if (state.portal) {
+                const gp = state.portal;
+                const portalGroup = new THREE.Group();
+                portalGroup.position.set(gp.x, gp.y, gp.z);
+
+                const torusGeo = new THREE.TorusGeometry(2, 0.4, 8, 24);
+                const torusMat = new THREE.MeshPhongMaterial({ color: 0x4f46e5, emissive: 0x312e81, shininess: 100 });
+                const torus = new THREE.Mesh(torusGeo, torusMat);
+                torus.name = "vortex";
+                portalGroup.add(torus);
+
+                const centerGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.1, 16);
+                const centerMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.6 });
+                const center = new THREE.Mesh(centerGeo, centerMat);
+                center.rotation.x = Math.PI / 2;
+                portalGroup.add(center);
+
+                scene.add(portalGroup);
+                portalMesh = portalGroup;
+            }
+
+            state.players = [];
+            for (let i = 0; i < state.playersCount; i++) {
+                const pScheme = PLAYER_SCHEMES[i];
+                
+                const playerObj = {
+                    idx: i,
+                    x: -3 + (i * 2.2), 
+                    y: 2,
+                    z: 0,
+                    w: 1.6,
+                    h: 1.6,
+                    d: 1.6,
+                    vx: 0,
+                    vy: 0,
+                    vz: 0,
+                    grounded: false,
+                    coyoteTimer: 0, 
+                    color: pScheme.color,
+                    hat: playerHats[i + 1] || 'none',
+                    isOnMovingPlatform: null,
+                    targetX: -3 + (i * 2.2),
+                    targetY: 2,
+                    targetZ: 0,
+                    checkpointX: -3 + (i * 2.2),
+                    checkpointY: 2,
+                    checkpointZ: 0
+                };
+
+                const pGroup = new THREE.Group();
+                pGroup.position.set(playerObj.x, playerObj.y, playerObj.z);
+
+                const pGeo = new THREE.BoxGeometry(playerObj.w, playerObj.h, playerObj.d);
+                const pMat = new THREE.MeshPhongMaterial({ 
+                    color: pScheme.color, 
+                    emissive: pScheme.emissive, 
+                    shininess: 45 
+                });
+                const bodyMesh = new THREE.Mesh(pGeo, pMat);
+                bodyMesh.castShadow = true;
+                bodyMesh.receiveShadow = true;
+                pGroup.add(bodyMesh);
+
+                const edges = new THREE.EdgesGeometry(pGeo);
+                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: pScheme.color }));
+                pGroup.add(line);
+
+                scene.add(pGroup);
+                playerObj.mesh = pGroup;
+                rebuildPlayerHatGeometry(playerObj);
+
+                state.players.push(playerObj);
+                pMeshes.push(pGroup);
+            }
+        }
+
+        function startGame() {
+            if (!jumpSynth) initSynth();
+
+            if (state.isOnlineMode) {
+                state.roles[0] = document.getElementById('ctrl-p1').checked;
+                state.roles[1] = document.getElementById('ctrl-p2').checked;
+                state.roles[2] = document.getElementById('ctrl-p3').checked;
+                state.roles[3] = document.getElementById('ctrl-p4').checked;
+            } else {
+                for (let i = 0; i < 4; i++) {
+                    state.roles[i] = (i < state.playersCount);
+                }
+            }
+
+            state.gameStarted = true;
+            state.deaths = 0;
+            state.elapsedTime = 0;
+            state.startTime = Date.now();
+
+            const uiContainer = document.getElementById('ui-container');
+            uiContainer.classList.remove('pointer-events-auto');
+            uiContainer.classList.add('pointer-events-none');
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-hud').classList.remove('hidden');
+
+            if (!initThreeJS()) return;
+            load3DLevel(state.playersCount, state.levelIndex);
+            updateTouchControlUI();
+
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                if (state.gameStarted) {
+                    state.elapsedTime = Date.now() - state.startTime;
+                    const secs = Math.floor(state.elapsedTime / 1000);
+                    const mins = Math.floor(secs / 60);
+                    document.getElementById('hud-timer').innerText = 
+                        `${String(mins).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+                }
+            }, 250);
+
+            requestAnimationFrame(gameLoop3D);
+        }
+
+        function exitToMenu() {
+            state.gameStarted = false;
+            if (state.timerInterval) clearInterval(state.timerInterval);
+
+            const uiContainer = document.getElementById('ui-container');
+            uiContainer.classList.remove('pointer-events-none');
+            uiContainer.classList.add('pointer-events-auto');
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('game-hud').classList.add('hidden');
+            document.getElementById('win-screen').classList.add('hidden');
+            document.getElementById('roblox-touch-container').classList.add('hidden');
+
+            // Refresh the level selectors to show unlocked progress
+            renderLevelSelectionGrid();
+        }
+
+        function showCoOpPrompt(text) {
+            const prompt = document.getElementById('game-prompt');
+            prompt.querySelector('span').innerText = text;
+            prompt.classList.remove('hidden');
+            setTimeout(() => {
+                prompt.classList.remove('scale-0');
+            }, 50);
+
+            setTimeout(() => {
+                prompt.classList.add('scale-0');
+            }, 6000);
+        }
+
+        async function resetCurrentLevel() {
+            state.deaths++;
+            playSound('hit');
+
+            if (state.isOnlineMode && state.roomId && db) {
+                const roomRef = db.doc(`artifacts/${appId}/public/data/rooms/${state.roomId}`);
+                try {
+                    await roomRef.update({ deaths: state.deaths });
+                } catch (e) {}
+            }
+
+            load3DLevel(state.playersCount, state.levelIndex);
+        }
+
+        function checkAABB3D(b1, b2) {
+            return (b1.x - b1.w/2 < b2.x + b2.w/2 &&
+                    b1.x + b1.w/2 > b2.x - b2.w/2 &&
+                    b1.y - b1.h/2 < b2.y + b2.h/2 &&
+                    b1.y + b1.h/2 > b2.y - b2.h/2 &&
+                    b1.z - b1.d/2 < b2.z + b2.d/2 &&
+                    b1.z + b1.d/2 > b2.z - b2.d/2);
+        }
+
+        function handlePlayerDeath(player) {
+            playSound('hit');
+            state.deaths++;
+            document.getElementById('hud-deaths').innerText = state.deaths;
+
+            if (state.isOnlineMode && state.roomId && db) {
+                const roomRef = db.doc(`artifacts/${appId}/public/data/rooms/${state.roomId}`);
+                try {
+                    roomRef.update({ deaths: state.deaths });
+                } catch (e) {}
+            }
+
+            player.x = player.checkpointX;
+            player.y = player.checkpointY + 2.0;
+            player.z = player.checkpointZ;
+            player.vx = 0;
+            player.vy = 0;
+            player.vz = 0;
+        }
+
+        function updatePhysics3D() {
+            const gravity = -0.012; 
+            const friction = 0.82;
+            const speed = 0.12;     
+            const jumpSpeed = 0.36; 
+
+            state.plates.forEach(p => p.pressed = false);
+
+            state.movingPlatforms.forEach((mp, idx) => {
+                if (mp.linkedToPlates) {
+                    const activePlates = state.plates.filter(p => p.targetGate === mp.id);
+                    const allDown = activePlates.every(p => p.pressed || p.triggeredOnce);
+                    
+                    const targetY = allDown ? mp.endY : mp.startY;
+                    const targetZ = allDown ? mp.endZ : mp.startZ;
+
+                    mp.currentY += (targetY - mp.currentY) * 0.08;
+                    mp.currentZ += (targetZ - mp.currentZ) * 0.08;
+                } else {
+                    if (mp.startX !== mp.endX) {
+                        mp.currentX += mp.speed * mp.dir;
+                        if (mp.currentX >= mp.endX && mp.dir > 0) mp.dir = -1;
+                        if (mp.currentX <= mp.startX && mp.dir < 0) mp.dir = 1;
+                    }
+                    if (mp.startY !== mp.endY) {
+                        mp.currentY += mp.speed * mp.dir;
+                        if (mp.currentY >= mp.endY && mp.dir > 0) mp.dir = -1;
+                        if (mp.currentY <= mp.startY && mp.dir < 0) mp.dir = 1;
+                    }
+                    if (mp.startZ !== mp.endZ) {
+                        mp.currentZ += mp.speed * mp.dir;
+                        if (mp.currentZ >= mp.endZ && mp.dir > 0) mp.dir = -1;
+                        if (mp.currentZ <= mp.startZ && mp.dir < 0) mp.dir = 1;
+                    }
+                }
+
+                if (mpMeshes[idx]) {
+                    mpMeshes[idx].position.set(mp.currentX, mp.currentY, mp.currentZ);
+                }
+            });
+
+            state.players.forEach((p, idx) => {
+                if (!state.roles[p.idx]) {
+                    p.x += (p.targetX - p.x) * 0.35;
+                    p.y += (p.targetY - p.y) * 0.35;
+                    p.z += (p.targetZ - p.z) * 0.35;
+                    return;
+                }
+
+                let upPressed = false;
+                let downPressed = false;
+                let leftPressed = false;
+                let rightPressed = false;
+                let jumpPressed = false;
+
+                const keyset = PLAYER_SCHEMES[idx].keys;
+
+                if (keys[keyset.up]) upPressed = true;
+                if (keys[keyset.down]) downPressed = true;
+                if (keys[keyset.left]) leftPressed = true;
+                if (keys[keyset.right]) rightPressed = true;
+                if (keys[keyset.jump]) jumpPressed = true;
+
+                if (!state.isOnlineMode && state.playersCount === 2) {
+                    if (idx === 0) {
+                        if (touchInputs.splitL.active) {
+                            p.vx = touchInputs.splitL.vx * speed;
+                            p.vz = touchInputs.splitL.vz * speed;
+                        }
+                        if (touchInputs.splitL.jump) jumpPressed = true;
+                    } else if (idx === 1) {
+                        if (touchInputs.splitR.active) {
+                            p.vx = touchInputs.splitR.vx * speed;
+                            p.vz = touchInputs.splitR.vz * speed;
+                        }
+                        if (touchInputs.splitR.jump) jumpPressed = true;
+                    }
+                } else {
+                    if (touchInputs.single.active) {
+                        p.vx = touchInputs.single.vx * speed;
+                        p.vz = touchInputs.single.vz * speed;
+                    }
+                    if (touchInputs.single.jump) jumpPressed = true;
+                }
+
+                if (!touchInputs.single.active && !touchInputs.splitL.active && !touchInputs.splitR.active) {
+                    let moveX = 0;
+                    let moveZ = 0;
+
+                    if (leftPressed) moveX = -1;
+                    if (rightPressed) moveX = 1;
+                    if (upPressed) moveZ = -1;
+                    if (downPressed) moveZ = 1;
+
+                    const theta = state.cameraTheta;
+                    const forwardX = Math.cos(theta);
+                    const forwardZ = Math.sin(theta);
+                    const rightX = -Math.sin(theta);
+                    const rightZ = Math.cos(theta);
+
+                    p.vx = (moveX * rightX + moveZ * forwardX) * speed;
+                    p.vz = (moveX * rightZ + moveZ * forwardZ) * speed;
+                }
+
+                p.vy += gravity;
+                p.vy = Math.max(p.vy, -0.4);
+
+                if (p.grounded) {
+                    p.coyoteTimer = 6; 
+                } else if (p.coyoteTimer > 0) {
+                    p.coyoteTimer--;
+                }
+
+                if (jumpPressed && p.coyoteTimer > 0) {
+                    p.vy = jumpSpeed;
+                    p.grounded = false;
+                    p.coyoteTimer = 0;
+                    playSound('jump');
+                }
+
+                if (p.y < -12) {
+                    handlePlayerDeath(p);
+                }
+            });
+
+            state.players.forEach(p => {
+                if (!state.roles[p.idx]) return;
+
+                p.x += p.vx;
+                p.z += p.vz;
+
+                state.platforms.forEach(plat => {
+                    const testBox = { x: p.x, y: p.y, z: p.z, w: p.w, h: p.h, d: p.d };
+                    if (checkAABB3D(testBox, plat)) {
+                        p.x -= p.vx;
+                        p.z -= p.vz;
+                        p.vx = 0;
+                        p.vz = 0;
+                    }
+                });
+
+                state.gates.forEach(g => {
+                    if (!g.open) {
+                        const testBox = { x: p.x, y: p.y, z: p.z, w: p.w, h: p.h, d: p.d };
+                        if (checkAABB3D(testBox, g)) {
+                            p.x -= p.vx;
+                            p.z -= p.vz;
+                            p.vx = 0;
+                            p.vz = 0;
+                        }
+                    }
+                });
+            });
+
+            state.players.forEach(p => {
+                if (!state.roles[p.idx]) return;
+
+                p.y += p.vy;
+                p.grounded = false;
+
+                state.platforms.forEach(plat => {
+                    const testBox = { x: p.x, y: p.y, z: p.z, w: p.w, h: p.h, d: p.d };
+                    if (checkAABB3D(testBox, plat)) {
+                        if (p.vy < 0 && p.y + p.h/2 - p.vy >= plat.y + plat.h/2) {
+                            p.y = plat.y + plat.h/2 + p.h/2;
+                            p.vy = 0;
+                            p.grounded = true;
+
+                            p.checkpointX = plat.x;
+                            p.checkpointY = plat.y + plat.h/2;
+                            p.checkpointZ = plat.z;
+                        } else if (p.vy > 0) {
+                            p.y = plat.y - plat.h/2 - p.h/2;
+                            p.vy = 0;
+                        }
+                    }
+                });
+
+                state.movingPlatforms.forEach(mp => {
+                    const mpBox = { x: mp.currentX, y: mp.currentY, z: mp.currentZ, w: mp.w, h: mp.h, d: mp.d };
+                    const testBox = { x: p.x, y: p.y, z: p.z, w: p.w, h: p.h, d: p.d };
+                    if (checkAABB3D(testBox, mpBox)) {
+                        if (p.vy < 0 && p.y + p.h/2 - p.vy >= mp.currentY + mp.h/2) {
+                            p.y = mp.currentY + mp.h/2 + p.h/2;
+                            p.vy = 0;
+                            p.grounded = true;
+
+                            if (mp.startX !== mp.endX) p.x += mp.speed * mp.dir;
+                            if (mp.startZ !== mp.endZ) p.z += mp.speed * mp.dir;
+                        } else if (p.vy > 0) {
+                            p.y = mp.currentY - mp.h/2 - p.h/2;
+                            p.vy = 0;
+                        }
+                    }
+                });
+            });
+
+            // Head Stacking Mechanics Loop
+            state.players.forEach(pA => {
+                state.players.forEach(pB => {
+                    if (pA.idx === pB.idx) return;
+
+                    const bA = { x: pA.x, y: pA.y, z: pA.z, w: pA.w, h: pA.h, d: pA.d };
+                    const bB = { x: pB.x, y: pB.y, z: pB.z, w: pB.w, h: pB.h, d: pB.d };
+
+                    if (checkAABB3D(bA, bB)) {
+                        if (pA.y > pB.y && pA.vy <= 0) {
+                            pA.y = pB.y + pB.h;
+                            pA.vy = 0;
+                            pA.grounded = true;
+                            
+                            pA.x += pB.vx * 0.75;
+                            pA.z += pB.vz * 0.75;
+                        } else if (pA.y < pB.y) {
+                            pB.y = pA.y + pA.h;
+                            pB.vy = 0;
+                            pB.grounded = true;
+                        }
+                    }
+                });
+            });
+
+            state.players.forEach(p => {
+                if (!state.roles[p.idx]) return;
+
+                state.spikes.forEach(sp => {
+                    const testBox = { x: p.x, y: p.y, z: p.z, w: p.w, h: p.h, d: p.d };
+                    if (checkAABB3D(testBox, sp)) {
+                        handlePlayerDeath(p);
+                    }
+                });
+            });
+
+            state.plates.forEach((plate, idx) => {
+                state.players.forEach(player => {
+                    const testBox = { x: player.x, y: player.y, z: player.z, w: player.w, h: player.h, d: player.d };
+                    if (checkAABB3D(testBox, plate)) {
+                        plate.pressed = true;
+                    }
+                });
+
+                if (plate.pressed) {
+                    plate.triggeredOnce = true; 
+                }
+
+                if (plateMeshes3d[idx]) {
+                    const buttonMesh = plateMeshes3d[idx].getObjectByName("trigger_button");
+                    if (buttonMesh) {
+                        buttonMesh.position.y = plate.pressed ? -0.12 : 0;
+                    }
+                }
+
+                if (plate.pressed && !plate.wasPressed) {
+                    playSound('plate');
+                    plate.wasPressed = true;
+                } else if (!plate.pressed && plate.wasPressed) {
+                    playSound('plate_off');
+                    plate.wasPressed = false;
+                }
+            });
+
+            state.gates.forEach((gate, idx) => {
+                const linkedPlates = state.plates.filter(p => p.targetGate === gate.id);
+                if (linkedPlates.length > 0) {
+                    if (state.playersCount === 1) {
+                        gate.open = linkedPlates.some(p => p.triggeredOnce || p.pressed);
+                    } else {
+                        const isSync = linkedPlates.some(p => p.mode === 'sync');
+                        if (isSync) {
+                            gate.open = linkedPlates.every(p => p.pressed);
+                        } else {
+                            gate.open = linkedPlates.some(p => p.pressed);
+                        }
+                    }
+                }
+
+                const speed = 0.22;
+                if (gate.open) {
+                    if (gate.y < gate.targetY) gate.y += speed;
+                } else {
+                    if (gate.y > gate.originY) gate.y -= speed;
+                }
+
+                if (gateMeshes[idx]) {
+                    gateMeshes[idx].position.y = gate.y;
+                }
+            });
+
+            if (state.portal) {
+                const allPlayersInPortal = state.players.every(player => {
+                    const testBox = { x: player.x, y: player.y, z: player.z, w: player.w, h: player.h, d: player.d };
+                    return checkAABB3D(testBox, state.portal);
+                });
+
+                if (allPlayersInPortal) {
+                    playSound('portal');
+                    advanceLevel();
+                }
+            }
+
+            state.players.forEach((p, idx) => {
+                if (pMeshes[idx]) {
+                    pMeshes[idx].position.set(p.x, p.y, p.z);
+                    
+                    if (Math.abs(p.vx) > 0.01) {
+                        pMeshes[idx].rotation.y = p.vx > 0 ? -Math.PI / 8 : Math.PI / 8;
+                    } else {
+                        pMeshes[idx].rotation.y *= 0.8;
+                    }
+                }
+            });
+
+            pushClientState();
+        }
+
+        async function advanceLevel() {
+            const maxLevels = LEVELS_3D_DATABASE[state.playersCount].length;
+            
+            // Unlock next level index for the current player count
+            const nextLvlIndex = state.levelIndex + 1;
+            if (nextLvlIndex < maxLevels) {
+                if (!state.unlockedLevels[state.playersCount].includes(nextLvlIndex)) {
+                    state.unlockedLevels[state.playersCount].push(nextLvlIndex);
+                    // Save to localStorage safely
+                    try {
+                        localStorage.setItem('parkour3d_unlocked_levels', JSON.stringify(state.unlockedLevels));
+                    } catch(e) {}
+                }
+            }
+
+            if (state.levelIndex < maxLevels - 1) {
+                state.levelIndex++;
+                
+                if (state.isOnlineMode && state.roomId && db) {
+                    const roomRef = db.doc(`artifacts/${appId}/public/data/rooms/${state.roomId}`);
+                    try {
+                        await roomRef.update({ currentLevel: state.levelIndex });
+                    } catch (e) {}
+                }
+
+                load3DLevel(state.playersCount, state.levelIndex);
+            } else {
+                triggerCoOpVictory();
+            }
+        }
+
+        function triggerCoOpVictory() {
+            state.gameStarted = false;
+            if (state.timerInterval) clearInterval(state.timerInterval);
+
+            const secs = (state.elapsedTime / 1000).toFixed(1);
+            const mins = Math.floor(secs / 60);
+
+            document.getElementById('final-time').innerText = `${String(mins).padStart(2, '0')}:${String((secs % 60).toFixed(1)).padStart(4, '0')}`;
+            document.getElementById('final-deaths').innerText = state.deaths;
+            document.getElementById('final-players').innerText = state.playersCount + " Players";
+
+            document.getElementById('win-screen').classList.remove('hidden');
+            document.getElementById('roblox-touch-container').classList.add('hidden');
+        }
+
+        function gameLoop3D() {
+            if (!state.gameStarted || typeof THREE === 'undefined') return;
+
+            updatePhysics3D();
+
+            // Animate space starfield gently to enhance background beauty
+            if (starField) {
+                starField.rotation.y += 0.0008;
+                starField.rotation.x += 0.0003;
+            }
+
+            let avgX = 0, avgY = 0, avgZ = 0, count = 0;
+            state.players.forEach(p => {
+                if (state.roles[p.idx]) {
+                    avgX += p.x;
+                    avgY += p.y;
+                    avgZ += p.z;
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                avgX /= count;
+                avgY /= count;
+                avgZ /= count;
+            }
+
+            const radius = state.cameraDistance;
+            const targetCamX = avgX + radius * Math.sin(state.cameraPhi) * Math.cos(state.cameraTheta);
+            const targetCamY = (avgY + 2) + radius * Math.cos(state.cameraPhi);
+            const targetCamZ = avgZ + radius * Math.sin(state.cameraPhi) * Math.sin(state.cameraTheta);
+
+            camera.position.x += (targetCamX - camera.position.x) * 0.08;
+            camera.position.y += (targetCamY - camera.position.y) * 0.08;
+            camera.position.z += (targetCamZ - camera.position.z) * 0.08;
+
+            camera.lookAt(avgX, avgY + 1.5, avgZ);
+
+            if (portalMesh) {
+                const vortex = portalMesh.getObjectByName("vortex");
+                if (vortex) {
+                    vortex.rotation.z += 0.04;
+                    vortex.rotation.x = Math.sin(Date.now() / 200) * 0.1;
+                }
+            }
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(gameLoop3D);
+        }
+
+        function initApp() {
+            setupFirebase();
+            initRobloxJoysticks();
+            
+            // Initialize 1-Player (Solo) by default to display initial tutorial
+            setPlayerCount(1); 
+
+            document.getElementById('start-game-btn').addEventListener('click', startGame);
+            document.getElementById('cust-btn').addEventListener('click', () => toggleSettingsModal(true));
+            document.getElementById('close-cust-btn').addEventListener('click', () => toggleSettingsModal(false));
+            document.getElementById('save-cust-btn').addEventListener('click', () => toggleSettingsModal(false));
+            document.getElementById('exit-btn').addEventListener('click', exitToMenu);
+            document.getElementById('reset-level-btn').addEventListener('click', resetCurrentLevel);
+            document.getElementById('win-again-btn').addEventListener('click', exitToMenu);
+            
+            document.getElementById('sound-toggle-btn').addEventListener('click', toggleSound);
+            document.getElementById('touch-toggle-btn').addEventListener('click', toggleTouchControls);
+
+            document.getElementById('host-btn').addEventListener('click', hostRoom);
+            document.getElementById('join-btn').addEventListener('click', joinRoom);
+            document.getElementById('leave-room-btn').addEventListener('click', disconnectRoom);
+
+            // Robust verification fix matching IMG_1587.jpeg (Ensuring "Okay" button functions correctly)
+            document.getElementById('modal-close-btn').addEventListener('click', closeCustomNotification);
+
+            // Bind the camera sensitivity slider
+            const sensSlider = document.getElementById('sensitivity-slider');
+            const sensValue = document.getElementById('sensitivity-value');
+            if (sensSlider && sensValue) {
+                sensSlider.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    state.cameraSensitivity = val;
+                    sensValue.innerText = val.toFixed(1) + "x";
+                });
+            }
+
+            // Bind player count selector buttons
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`p-count-${i}`).addEventListener('click', () => {
+                    // Reset selected active level to first index when switching player counts
+                    state.levelIndex = 0;
+                    setPlayerCount(i);
+                });
+            }
+
+            // Bind customizable player hats selectors
+            for (let i = 1; i <= 4; i++) {
+                const sel = document.getElementById(`hat-select-${i}`);
+                if (sel) {
+                    sel.addEventListener('change', (e) => changePlayerHat(i, e.target.value));
+                }
+            }
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initApp);
+        } else {
+            initApp();
+        }
+
+        function toggleSettingsModal(show) {
+            const modal = document.getElementById('settings-modal');
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
